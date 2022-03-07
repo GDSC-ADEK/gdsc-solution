@@ -80,7 +80,8 @@ class LoginScreen extends StatelessWidget {
     Widget build(BuildContext context) {
         return Center(
             child: Container(
-                width: 200,
+                //width: 200,
+                padding: EdgeInsets.only(left: 30, right: 30),
                 child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -124,64 +125,25 @@ class SecondScreen extends StatelessWidget {
                         'Clean up days',
                         style: const TextStyle(fontSize: 20),
                     ),
-                    /*ListView(
-                        scrollDirection: Axis.vertical,
-                        children: [
-                            const Text("Item 1"),
-                            /*Card(
-                                child: const Text("Item 1"),
-                            ),*/
-                        ],
-                    ),*/
-                    Container(
-                        padding: EdgeInsets.only(left: 30, right: 30),
-                        height: 100,
-                        child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 1"),
+                    Expanded(
+                        child: Container(
+                            color: Colors.amber[600],
+                            padding: EdgeInsets.only(left: 30, right: 30),
+                            child: ListView(
+                                children: List.generate(30, (i) => Card(
+                                    child: TextButton(
+                                            onPressed: () {
+                                                Provider.of<AppState>(context, listen: false).switchScreen();
+                                            },
+                                            child: Container(
+                                                width: double.infinity,
+                                                height: 100,
+                                                child: Text("Item ${i+1}"),
+                                            ),
+                                        ),
                                     ),
                                 ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 2"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 3"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 4"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 5"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 6"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 7"),
-                                    ),
-                                ),
-                            ],
+                            ),
                         ),
                     ),
                     const SizedBox(height: 30),
@@ -189,57 +151,22 @@ class SecondScreen extends StatelessWidget {
                         'Finished clean up days',
                         style: const TextStyle(fontSize: 20),
                     ),
-                    Container(
-                        padding: EdgeInsets.only(left: 30, right: 30),
-                        height: 100,
-                        child: ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 1"),
+                    Expanded(
+                        child: Container(
+                            color: Colors.blue[600],
+                            padding: EdgeInsets.only(left: 30, right: 30),
+                            child: ListView(
+                                children: List.generate(30, (i) => Card(
+                                        child: Container(
+                                            height: 100,
+                                            child: Text("Item ${i+1}"),
+                                        ),
                                     ),
                                 ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 2"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 3"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 4"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 5"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 6"),
-                                    ),
-                                ),
-                                Card(
-                                    child: Container(
-                                        width: 100,
-                                        child: const Text("Item 7"),
-                                    ),
-                                ),
-                            ],
+                            ),
                         ),
                     ),
+                    const SizedBox(height: 30),
                 ],
             )
         );
