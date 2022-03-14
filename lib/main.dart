@@ -10,15 +10,29 @@ https://firebase.flutter.dev/docs/auth/social/
 //import 'dart:html';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore_odm/cloud_firestore_odm.dart';
 import 'firebase_options.dart';
+import "locationtype.dart";
 
-void main() {
+void main() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+  } catch (e, st) {
+    print(e);
+    print(st);
+  }
+  await Firebase.initializeApp(
+      options: DefaultFirebaseOptions
+          .android); // TODO: change this to .currentPlatform later
+
+  // We sign the user in anonymously, meaning they get a user ID without having
+  // to provide credentials.
+  await FirebaseAuth.instance.signInAnonymously();
   runApp(MyApp());
 }
 
@@ -105,6 +119,10 @@ class _EventScreenState extends State<EventScreen> {
               ],
             ),
           ),
+          LocationsList(),
+          // LoctypeList(),
+          RolesList(),
+          // EventsList(),
           Divider(),
           Row(
             children: [
@@ -312,5 +330,111 @@ class StatisticsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// TODO README: https://firebase.flutter.dev/docs/firestore-odm/references
+// read ^ to see widgets, reading, querying
+class RolesList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FirestoreBuilder<RoleQuerySnapshot>(
+        ref: roleRefs,
+        builder: (context, AsyncSnapshot<RoleQuerySnapshot> snapshot,
+            Widget? child) {
+          if (snapshot.hasError) return Text('Something went wrong!');
+          if (!snapshot.hasData) return Text('Loading roles...');
+
+          // Access the QuerySnapshot
+          RoleQuerySnapshot querySnapshot = snapshot.requireData;
+          print(querySnapshot.docs[0].data);
+
+          return ListView.builder(
+            itemCount: querySnapshot.docs.length,
+            itemBuilder: (context, index) {
+              // Access the User instance
+              Role role = querySnapshot.docs[index].data;
+              return Text('Role name: ${role.name}, members ${role.members}');
+            },
+          );
+        });
+  }
+}
+
+class LocationsList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FirestoreBuilder<LocationQuerySnapshot>(
+        ref: locRefs,
+        builder: (context, AsyncSnapshot<LocationQuerySnapshot> snapshot,
+            Widget? child) {
+          if (snapshot.hasError) return Text('Something went wrong!');
+          if (!snapshot.hasData) return Text('Loading locations...');
+
+          // Access the QuerySnapshot
+          LocationQuerySnapshot querySnapshot = snapshot.requireData;
+          print(querySnapshot.docs[0].data);
+
+          return ListView.builder(
+            itemCount: querySnapshot.docs.length,
+            itemBuilder: (context, index) {
+              // Access the User instance
+              Location loc = querySnapshot.docs[index].data;
+              return Text('Location geo: ${loc.loc}, type:${loc.type} ');
+            },
+          );
+        });
+  }
+}
+
+class LoctypeList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FirestoreBuilder<LocationTypeQuerySnapshot>(
+        ref: LTRef,
+        builder: (context, AsyncSnapshot<LocationTypeQuerySnapshot> snapshot,
+            Widget? child) {
+          if (snapshot.hasError) return Text('Something went wrong!');
+          if (!snapshot.hasData) return Text('Loading locationtypes...');
+
+          // Access the QuerySnapshot
+          LocationTypeQuerySnapshot querySnapshot = snapshot.requireData;
+          print(querySnapshot.docs[0].data);
+
+          return ListView.builder(
+            itemCount: querySnapshot.docs.length,
+            itemBuilder: (context, index) {
+              // Access the User instance
+              LocationType ltype = querySnapshot.docs[index].data;
+              return Text('LT name: ${ltype.name}');
+            },
+          );
+        });
+  }
+}
+
+class EventsList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FirestoreBuilder<EventQuerySnapshot>(
+        ref: eventRefs,
+        builder: (context, AsyncSnapshot<EventQuerySnapshot> snapshot,
+            Widget? child) {
+          if (snapshot.hasError) return Text('Something went wrong!');
+          if (!snapshot.hasData) return Text('Loading events...');
+
+          // Access the QuerySnapshot
+          EventQuerySnapshot querySnapshot = snapshot.requireData;
+          print(querySnapshot.docs[0].data);
+
+          return ListView.builder(
+            itemCount: querySnapshot.docs.length,
+            itemBuilder: (context, index) {
+              // Access the User instance
+              Event event = querySnapshot.docs[index].data;
+              return Text('LT name: ${event.name}');
+            },
+          );
+        });
   }
 }
