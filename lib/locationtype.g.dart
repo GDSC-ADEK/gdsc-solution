@@ -27,16 +27,16 @@ abstract class LocationTypeCollectionReference
   ]) = _$LocationTypeCollectionReference;
 
   static LocationType fromFirestore(
-    DocumentSnapshot<Map<String, Object?>> snapshot,
-    SnapshotOptions? options,
-  ) {
+      DocumentSnapshot<Map<String, Object?>> snapshot,
+      SnapshotOptions? options,
+      ) {
     return LocationType.fromJson(snapshot.data()!);
   }
 
   static Map<String, Object?> toFirestore(
-    LocationType value,
-    SetOptions? options,
-  ) {
+      LocationType value,
+      SetOptions? options,
+      ) {
     return value.toJson();
   }
 
@@ -55,15 +55,15 @@ class _$LocationTypeCollectionReference extends _$LocationTypeQuery
 
     return _$LocationTypeCollectionReference._(
       firestore.collection('LocationTypes').withConverter(
-            fromFirestore: LocationTypeCollectionReference.fromFirestore,
-            toFirestore: LocationTypeCollectionReference.toFirestore,
-          ),
+        fromFirestore: LocationTypeCollectionReference.fromFirestore,
+        toFirestore: LocationTypeCollectionReference.toFirestore,
+      ),
     );
   }
 
   _$LocationTypeCollectionReference._(
-    CollectionReference<LocationType> reference,
-  ) : super(reference, reference);
+      CollectionReference<LocationType> reference,
+      ) : super(reference, reference);
 
   String get path => reference.path;
 
@@ -99,8 +99,8 @@ class _$LocationTypeCollectionReference extends _$LocationTypeQuery
 abstract class LocationTypeDocumentReference
     extends FirestoreDocumentReference<LocationTypeDocumentSnapshot> {
   factory LocationTypeDocumentReference(
-          DocumentReference<LocationType> reference) =
-      _$LocationTypeDocumentReference;
+      DocumentReference<LocationType> reference) =
+  _$LocationTypeDocumentReference;
 
   DocumentReference<LocationType> get reference;
 
@@ -191,9 +191,9 @@ class _$LocationTypeDocumentReference
 
 class LocationTypeDocumentSnapshot extends FirestoreDocumentSnapshot {
   LocationTypeDocumentSnapshot._(
-    this.snapshot,
-    this.data,
-  );
+      this.snapshot,
+      this.data,
+      );
 
   @override
   final DocumentSnapshot<LocationType> snapshot;
@@ -245,9 +245,9 @@ abstract class LocationTypeQuery
 class _$LocationTypeQuery extends QueryReference<LocationTypeQuerySnapshot>
     implements LocationTypeQuery {
   _$LocationTypeQuery(
-    this.reference,
-    this._collection,
-  );
+      this.reference,
+      this._collection,
+      );
 
   final CollectionReference<Object?> _collection;
 
@@ -255,8 +255,8 @@ class _$LocationTypeQuery extends QueryReference<LocationTypeQuerySnapshot>
   final Query<LocationType> reference;
 
   LocationTypeQuerySnapshot _decodeSnapshot(
-    QuerySnapshot<LocationType> snapshot,
-  ) {
+      QuerySnapshot<LocationType> snapshot,
+      ) {
     final docs = snapshot.docs.map((e) {
       return LocationTypeQueryDocumentSnapshot._(e, e.data());
     }).toList();
@@ -387,10 +387,10 @@ class _$LocationTypeQuery extends QueryReference<LocationTypeQuerySnapshot>
 class LocationTypeQuerySnapshot
     extends FirestoreQuerySnapshot<LocationTypeQueryDocumentSnapshot> {
   LocationTypeQuerySnapshot._(
-    this.snapshot,
-    this.docs,
-    this.docChanges,
-  );
+      this.snapshot,
+      this.docs,
+      this.docChanges,
+      );
 
   final QuerySnapshot<LocationType> snapshot;
 
@@ -429,16 +429,16 @@ abstract class LocationCollectionReference
   ]) = _$LocationCollectionReference;
 
   static Location fromFirestore(
-    DocumentSnapshot<Map<String, Object?>> snapshot,
-    SnapshotOptions? options,
-  ) {
+      DocumentSnapshot<Map<String, Object?>> snapshot,
+      SnapshotOptions? options,
+      ) {
     return Location.fromJson(snapshot.data()!);
   }
 
   static Map<String, Object?> toFirestore(
-    Location value,
-    SetOptions? options,
-  ) {
+      Location value,
+      SetOptions? options,
+      ) {
     return value.toJson();
   }
 
@@ -457,15 +457,15 @@ class _$LocationCollectionReference extends _$LocationQuery
 
     return _$LocationCollectionReference._(
       firestore.collection('Locations').withConverter(
-            fromFirestore: LocationCollectionReference.fromFirestore,
-            toFirestore: LocationCollectionReference.toFirestore,
-          ),
+        fromFirestore: LocationCollectionReference.fromFirestore,
+        toFirestore: LocationCollectionReference.toFirestore,
+      ),
     );
   }
 
   _$LocationCollectionReference._(
-    CollectionReference<Location> reference,
-  ) : super(reference, reference);
+      CollectionReference<Location> reference,
+      ) : super(reference, reference);
 
   String get path => reference.path;
 
@@ -499,7 +499,7 @@ class _$LocationCollectionReference extends _$LocationQuery
 abstract class LocationDocumentReference
     extends FirestoreDocumentReference<LocationDocumentSnapshot> {
   factory LocationDocumentReference(DocumentReference<Location> reference) =
-      _$LocationDocumentReference;
+  _$LocationDocumentReference;
 
   DocumentReference<Location> get reference;
 
@@ -576,9 +576,9 @@ class _$LocationDocumentReference
 
 class LocationDocumentSnapshot extends FirestoreDocumentSnapshot {
   LocationDocumentSnapshot._(
-    this.snapshot,
-    this.data,
-  );
+      this.snapshot,
+      this.data,
+      );
 
   @override
   final DocumentSnapshot<Location> snapshot;
@@ -605,9 +605,9 @@ abstract class LocationQuery implements QueryReference<LocationQuerySnapshot> {
 class _$LocationQuery extends QueryReference<LocationQuerySnapshot>
     implements LocationQuery {
   _$LocationQuery(
-    this.reference,
-    this._collection,
-  );
+      this.reference,
+      this._collection,
+      );
 
   final CollectionReference<Object?> _collection;
 
@@ -615,8 +615,8 @@ class _$LocationQuery extends QueryReference<LocationQuerySnapshot>
   final Query<Location> reference;
 
   LocationQuerySnapshot _decodeSnapshot(
-    QuerySnapshot<Location> snapshot,
-  ) {
+      QuerySnapshot<Location> snapshot,
+      ) {
     final docs = snapshot.docs.map((e) {
       return LocationQueryDocumentSnapshot._(e, e.data());
     }).toList();
@@ -677,10 +677,10 @@ class _$LocationQuery extends QueryReference<LocationQuerySnapshot>
 class LocationQuerySnapshot
     extends FirestoreQuerySnapshot<LocationQueryDocumentSnapshot> {
   LocationQuerySnapshot._(
-    this.snapshot,
-    this.docs,
-    this.docChanges,
-  );
+      this.snapshot,
+      this.docs,
+      this.docChanges,
+      );
 
   final QuerySnapshot<Location> snapshot;
 
@@ -717,16 +717,16 @@ abstract class RoleCollectionReference
   ]) = _$RoleCollectionReference;
 
   static Role fromFirestore(
-    DocumentSnapshot<Map<String, Object?>> snapshot,
-    SnapshotOptions? options,
-  ) {
+      DocumentSnapshot<Map<String, Object?>> snapshot,
+      SnapshotOptions? options,
+      ) {
     return Role.fromJson(snapshot.data()!);
   }
 
   static Map<String, Object?> toFirestore(
-    Role value,
-    SetOptions? options,
-  ) {
+      Role value,
+      SetOptions? options,
+      ) {
     return value.toJson();
   }
 
@@ -745,15 +745,15 @@ class _$RoleCollectionReference extends _$RoleQuery
 
     return _$RoleCollectionReference._(
       firestore.collection('Roles').withConverter(
-            fromFirestore: RoleCollectionReference.fromFirestore,
-            toFirestore: RoleCollectionReference.toFirestore,
-          ),
+        fromFirestore: RoleCollectionReference.fromFirestore,
+        toFirestore: RoleCollectionReference.toFirestore,
+      ),
     );
   }
 
   _$RoleCollectionReference._(
-    CollectionReference<Role> reference,
-  ) : super(reference, reference);
+      CollectionReference<Role> reference,
+      ) : super(reference, reference);
 
   String get path => reference.path;
 
@@ -787,7 +787,7 @@ class _$RoleCollectionReference extends _$RoleQuery
 abstract class RoleDocumentReference
     extends FirestoreDocumentReference<RoleDocumentSnapshot> {
   factory RoleDocumentReference(DocumentReference<Role> reference) =
-      _$RoleDocumentReference;
+  _$RoleDocumentReference;
 
   DocumentReference<Role> get reference;
 
@@ -878,9 +878,9 @@ class _$RoleDocumentReference
 
 class RoleDocumentSnapshot extends FirestoreDocumentSnapshot {
   RoleDocumentSnapshot._(
-    this.snapshot,
-    this.data,
-  );
+      this.snapshot,
+      this.data,
+      );
 
   @override
   final DocumentSnapshot<Role> snapshot;
@@ -931,9 +931,9 @@ abstract class RoleQuery implements QueryReference<RoleQuerySnapshot> {
 class _$RoleQuery extends QueryReference<RoleQuerySnapshot>
     implements RoleQuery {
   _$RoleQuery(
-    this.reference,
-    this._collection,
-  );
+      this.reference,
+      this._collection,
+      );
 
   final CollectionReference<Object?> _collection;
 
@@ -941,8 +941,8 @@ class _$RoleQuery extends QueryReference<RoleQuerySnapshot>
   final Query<Role> reference;
 
   RoleQuerySnapshot _decodeSnapshot(
-    QuerySnapshot<Role> snapshot,
-  ) {
+      QuerySnapshot<Role> snapshot,
+      ) {
     final docs = snapshot.docs.map((e) {
       return RoleQueryDocumentSnapshot._(e, e.data());
     }).toList();
@@ -1073,10 +1073,10 @@ class _$RoleQuery extends QueryReference<RoleQuerySnapshot>
 class RoleQuerySnapshot
     extends FirestoreQuerySnapshot<RoleQueryDocumentSnapshot> {
   RoleQuerySnapshot._(
-    this.snapshot,
-    this.docs,
-    this.docChanges,
-  );
+      this.snapshot,
+      this.docs,
+      this.docChanges,
+      );
 
   final QuerySnapshot<Role> snapshot;
 
@@ -1113,16 +1113,16 @@ abstract class EventCollectionReference
   ]) = _$EventCollectionReference;
 
   static Event fromFirestore(
-    DocumentSnapshot<Map<String, Object?>> snapshot,
-    SnapshotOptions? options,
-  ) {
+      DocumentSnapshot<Map<String, Object?>> snapshot,
+      SnapshotOptions? options,
+      ) {
     return Event.fromJson(snapshot.data()!);
   }
 
   static Map<String, Object?> toFirestore(
-    Event value,
-    SetOptions? options,
-  ) {
+      Event value,
+      SetOptions? options,
+      ) {
     return value.toJson();
   }
 
@@ -1141,15 +1141,15 @@ class _$EventCollectionReference extends _$EventQuery
 
     return _$EventCollectionReference._(
       firestore.collection('Events').withConverter(
-            fromFirestore: EventCollectionReference.fromFirestore,
-            toFirestore: EventCollectionReference.toFirestore,
-          ),
+        fromFirestore: EventCollectionReference.fromFirestore,
+        toFirestore: EventCollectionReference.toFirestore,
+      ),
     );
   }
 
   _$EventCollectionReference._(
-    CollectionReference<Event> reference,
-  ) : super(reference, reference);
+      CollectionReference<Event> reference,
+      ) : super(reference, reference);
 
   String get path => reference.path;
 
@@ -1183,7 +1183,7 @@ class _$EventCollectionReference extends _$EventQuery
 abstract class EventDocumentReference
     extends FirestoreDocumentReference<EventDocumentSnapshot> {
   factory EventDocumentReference(DocumentReference<Event> reference) =
-      _$EventDocumentReference;
+  _$EventDocumentReference;
 
   DocumentReference<Event> get reference;
 
@@ -1206,6 +1206,10 @@ abstract class EventDocumentReference
     String description,
     bool complete,
     bool publish,
+    List<String> organizers,
+    List<String> participants,
+    List<String> beforePictures,
+    List<String> afterPictures,
     num garbageCollected,
   });
 
@@ -1255,6 +1259,10 @@ class _$EventDocumentReference
     Object? description = _sentinel,
     Object? complete = _sentinel,
     Object? publish = _sentinel,
+    Object? organizers = _sentinel,
+    Object? participants = _sentinel,
+    Object? beforePictures = _sentinel,
+    Object? afterPictures = _sentinel,
     Object? garbageCollected = _sentinel,
   }) async {
     final json = {
@@ -1262,6 +1270,13 @@ class _$EventDocumentReference
       if (description != _sentinel) "description": description as String,
       if (complete != _sentinel) "complete": complete as bool,
       if (publish != _sentinel) "publish": publish as bool,
+      if (organizers != _sentinel) "organizers": organizers as List<String>,
+      if (participants != _sentinel)
+        "participants": participants as List<String>,
+      if (beforePictures != _sentinel)
+        "beforePictures": beforePictures as List<String>,
+      if (afterPictures != _sentinel)
+        "afterPictures": afterPictures as List<String>,
       if (garbageCollected != _sentinel)
         "garbageCollected": garbageCollected as num,
     };
@@ -1287,9 +1302,9 @@ class _$EventDocumentReference
 
 class EventDocumentSnapshot extends FirestoreDocumentSnapshot {
   EventDocumentSnapshot._(
-    this.snapshot,
-    this.data,
-  );
+      this.snapshot,
+      this.data,
+      );
 
   @override
   final DocumentSnapshot<Event> snapshot;
@@ -1356,6 +1371,46 @@ abstract class EventQuery implements QueryReference<EventQuerySnapshot> {
     List<bool>? whereIn,
     List<bool>? whereNotIn,
   });
+  EventQuery whereOrganizers({
+    List<String>? isEqualTo,
+    List<String>? isNotEqualTo,
+    List<String>? isLessThan,
+    List<String>? isLessThanOrEqualTo,
+    List<String>? isGreaterThan,
+    List<String>? isGreaterThanOrEqualTo,
+    bool? isNull,
+    List<String>? arrayContainsAny,
+  });
+  EventQuery whereParticipants({
+    List<String>? isEqualTo,
+    List<String>? isNotEqualTo,
+    List<String>? isLessThan,
+    List<String>? isLessThanOrEqualTo,
+    List<String>? isGreaterThan,
+    List<String>? isGreaterThanOrEqualTo,
+    bool? isNull,
+    List<String>? arrayContainsAny,
+  });
+  EventQuery whereBeforePictures({
+    List<String>? isEqualTo,
+    List<String>? isNotEqualTo,
+    List<String>? isLessThan,
+    List<String>? isLessThanOrEqualTo,
+    List<String>? isGreaterThan,
+    List<String>? isGreaterThanOrEqualTo,
+    bool? isNull,
+    List<String>? arrayContainsAny,
+  });
+  EventQuery whereAfterPictures({
+    List<String>? isEqualTo,
+    List<String>? isNotEqualTo,
+    List<String>? isLessThan,
+    List<String>? isLessThanOrEqualTo,
+    List<String>? isGreaterThan,
+    List<String>? isGreaterThanOrEqualTo,
+    bool? isNull,
+    List<String>? arrayContainsAny,
+  });
   EventQuery whereGarbageCollected({
     num? isEqualTo,
     num? isNotEqualTo,
@@ -1416,6 +1471,54 @@ abstract class EventQuery implements QueryReference<EventQuerySnapshot> {
     EventDocumentSnapshot? startAfterDocument,
   });
 
+  EventQuery orderByOrganizers({
+    bool descending = false,
+    List<String> startAt,
+    List<String> startAfter,
+    List<String> endAt,
+    List<String> endBefore,
+    EventDocumentSnapshot? startAtDocument,
+    EventDocumentSnapshot? endAtDocument,
+    EventDocumentSnapshot? endBeforeDocument,
+    EventDocumentSnapshot? startAfterDocument,
+  });
+
+  EventQuery orderByParticipants({
+    bool descending = false,
+    List<String> startAt,
+    List<String> startAfter,
+    List<String> endAt,
+    List<String> endBefore,
+    EventDocumentSnapshot? startAtDocument,
+    EventDocumentSnapshot? endAtDocument,
+    EventDocumentSnapshot? endBeforeDocument,
+    EventDocumentSnapshot? startAfterDocument,
+  });
+
+  EventQuery orderByBeforePictures({
+    bool descending = false,
+    List<String> startAt,
+    List<String> startAfter,
+    List<String> endAt,
+    List<String> endBefore,
+    EventDocumentSnapshot? startAtDocument,
+    EventDocumentSnapshot? endAtDocument,
+    EventDocumentSnapshot? endBeforeDocument,
+    EventDocumentSnapshot? startAfterDocument,
+  });
+
+  EventQuery orderByAfterPictures({
+    bool descending = false,
+    List<String> startAt,
+    List<String> startAfter,
+    List<String> endAt,
+    List<String> endBefore,
+    EventDocumentSnapshot? startAtDocument,
+    EventDocumentSnapshot? endAtDocument,
+    EventDocumentSnapshot? endBeforeDocument,
+    EventDocumentSnapshot? startAfterDocument,
+  });
+
   EventQuery orderByGarbageCollected({
     bool descending = false,
     num startAt,
@@ -1432,9 +1535,9 @@ abstract class EventQuery implements QueryReference<EventQuerySnapshot> {
 class _$EventQuery extends QueryReference<EventQuerySnapshot>
     implements EventQuery {
   _$EventQuery(
-    this.reference,
-    this._collection,
-  );
+      this.reference,
+      this._collection,
+      );
 
   final CollectionReference<Object?> _collection;
 
@@ -1442,8 +1545,8 @@ class _$EventQuery extends QueryReference<EventQuerySnapshot>
   final Query<Event> reference;
 
   EventQuerySnapshot _decodeSnapshot(
-    QuerySnapshot<Event> snapshot,
-  ) {
+      QuerySnapshot<Event> snapshot,
+      ) {
     final docs = snapshot.docs.map((e) {
       return EventQueryDocumentSnapshot._(e, e.data());
     }).toList();
@@ -1597,6 +1700,110 @@ class _$EventQuery extends QueryReference<EventQuerySnapshot>
         isNull: isNull,
         whereIn: whereIn,
         whereNotIn: whereNotIn,
+      ),
+      _collection,
+    );
+  }
+
+  EventQuery whereOrganizers({
+    List<String>? isEqualTo,
+    List<String>? isNotEqualTo,
+    List<String>? isLessThan,
+    List<String>? isLessThanOrEqualTo,
+    List<String>? isGreaterThan,
+    List<String>? isGreaterThanOrEqualTo,
+    bool? isNull,
+    List<String>? arrayContainsAny,
+  }) {
+    return _$EventQuery(
+      reference.where(
+        'organizers',
+        isEqualTo: isEqualTo,
+        isNotEqualTo: isNotEqualTo,
+        isLessThan: isLessThan,
+        isLessThanOrEqualTo: isLessThanOrEqualTo,
+        isGreaterThan: isGreaterThan,
+        isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,
+        isNull: isNull,
+        arrayContainsAny: arrayContainsAny,
+      ),
+      _collection,
+    );
+  }
+
+  EventQuery whereParticipants({
+    List<String>? isEqualTo,
+    List<String>? isNotEqualTo,
+    List<String>? isLessThan,
+    List<String>? isLessThanOrEqualTo,
+    List<String>? isGreaterThan,
+    List<String>? isGreaterThanOrEqualTo,
+    bool? isNull,
+    List<String>? arrayContainsAny,
+  }) {
+    return _$EventQuery(
+      reference.where(
+        'participants',
+        isEqualTo: isEqualTo,
+        isNotEqualTo: isNotEqualTo,
+        isLessThan: isLessThan,
+        isLessThanOrEqualTo: isLessThanOrEqualTo,
+        isGreaterThan: isGreaterThan,
+        isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,
+        isNull: isNull,
+        arrayContainsAny: arrayContainsAny,
+      ),
+      _collection,
+    );
+  }
+
+  EventQuery whereBeforePictures({
+    List<String>? isEqualTo,
+    List<String>? isNotEqualTo,
+    List<String>? isLessThan,
+    List<String>? isLessThanOrEqualTo,
+    List<String>? isGreaterThan,
+    List<String>? isGreaterThanOrEqualTo,
+    bool? isNull,
+    List<String>? arrayContainsAny,
+  }) {
+    return _$EventQuery(
+      reference.where(
+        'beforePictures',
+        isEqualTo: isEqualTo,
+        isNotEqualTo: isNotEqualTo,
+        isLessThan: isLessThan,
+        isLessThanOrEqualTo: isLessThanOrEqualTo,
+        isGreaterThan: isGreaterThan,
+        isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,
+        isNull: isNull,
+        arrayContainsAny: arrayContainsAny,
+      ),
+      _collection,
+    );
+  }
+
+  EventQuery whereAfterPictures({
+    List<String>? isEqualTo,
+    List<String>? isNotEqualTo,
+    List<String>? isLessThan,
+    List<String>? isLessThanOrEqualTo,
+    List<String>? isGreaterThan,
+    List<String>? isGreaterThanOrEqualTo,
+    bool? isNull,
+    List<String>? arrayContainsAny,
+  }) {
+    return _$EventQuery(
+      reference.where(
+        'afterPictures',
+        isEqualTo: isEqualTo,
+        isNotEqualTo: isNotEqualTo,
+        isLessThan: isLessThan,
+        isLessThanOrEqualTo: isLessThanOrEqualTo,
+        isGreaterThan: isGreaterThan,
+        isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,
+        isNull: isNull,
+        arrayContainsAny: arrayContainsAny,
       ),
       _collection,
     );
@@ -1798,6 +2005,174 @@ class _$EventQuery extends QueryReference<EventQuerySnapshot>
     return _$EventQuery(query, _collection);
   }
 
+  EventQuery orderByOrganizers({
+    bool descending = false,
+    Object? startAt = _sentinel,
+    Object? startAfter = _sentinel,
+    Object? endAt = _sentinel,
+    Object? endBefore = _sentinel,
+    EventDocumentSnapshot? startAtDocument,
+    EventDocumentSnapshot? endAtDocument,
+    EventDocumentSnapshot? endBeforeDocument,
+    EventDocumentSnapshot? startAfterDocument,
+  }) {
+    var query = reference.orderBy('organizers', descending: descending);
+
+    if (startAtDocument != null) {
+      query = query.startAtDocument(startAtDocument.snapshot);
+    }
+    if (startAfterDocument != null) {
+      query = query.startAfterDocument(startAfterDocument.snapshot);
+    }
+    if (endAtDocument != null) {
+      query = query.endAtDocument(endAtDocument.snapshot);
+    }
+    if (endBeforeDocument != null) {
+      query = query.endBeforeDocument(endBeforeDocument.snapshot);
+    }
+
+    if (startAt != _sentinel) {
+      query = query.startAt([startAt]);
+    }
+    if (startAfter != _sentinel) {
+      query = query.startAfter([startAfter]);
+    }
+    if (endAt != _sentinel) {
+      query = query.endAt([endAt]);
+    }
+    if (endBefore != _sentinel) {
+      query = query.endBefore([endBefore]);
+    }
+
+    return _$EventQuery(query, _collection);
+  }
+
+  EventQuery orderByParticipants({
+    bool descending = false,
+    Object? startAt = _sentinel,
+    Object? startAfter = _sentinel,
+    Object? endAt = _sentinel,
+    Object? endBefore = _sentinel,
+    EventDocumentSnapshot? startAtDocument,
+    EventDocumentSnapshot? endAtDocument,
+    EventDocumentSnapshot? endBeforeDocument,
+    EventDocumentSnapshot? startAfterDocument,
+  }) {
+    var query = reference.orderBy('participants', descending: descending);
+
+    if (startAtDocument != null) {
+      query = query.startAtDocument(startAtDocument.snapshot);
+    }
+    if (startAfterDocument != null) {
+      query = query.startAfterDocument(startAfterDocument.snapshot);
+    }
+    if (endAtDocument != null) {
+      query = query.endAtDocument(endAtDocument.snapshot);
+    }
+    if (endBeforeDocument != null) {
+      query = query.endBeforeDocument(endBeforeDocument.snapshot);
+    }
+
+    if (startAt != _sentinel) {
+      query = query.startAt([startAt]);
+    }
+    if (startAfter != _sentinel) {
+      query = query.startAfter([startAfter]);
+    }
+    if (endAt != _sentinel) {
+      query = query.endAt([endAt]);
+    }
+    if (endBefore != _sentinel) {
+      query = query.endBefore([endBefore]);
+    }
+
+    return _$EventQuery(query, _collection);
+  }
+
+  EventQuery orderByBeforePictures({
+    bool descending = false,
+    Object? startAt = _sentinel,
+    Object? startAfter = _sentinel,
+    Object? endAt = _sentinel,
+    Object? endBefore = _sentinel,
+    EventDocumentSnapshot? startAtDocument,
+    EventDocumentSnapshot? endAtDocument,
+    EventDocumentSnapshot? endBeforeDocument,
+    EventDocumentSnapshot? startAfterDocument,
+  }) {
+    var query = reference.orderBy('beforePictures', descending: descending);
+
+    if (startAtDocument != null) {
+      query = query.startAtDocument(startAtDocument.snapshot);
+    }
+    if (startAfterDocument != null) {
+      query = query.startAfterDocument(startAfterDocument.snapshot);
+    }
+    if (endAtDocument != null) {
+      query = query.endAtDocument(endAtDocument.snapshot);
+    }
+    if (endBeforeDocument != null) {
+      query = query.endBeforeDocument(endBeforeDocument.snapshot);
+    }
+
+    if (startAt != _sentinel) {
+      query = query.startAt([startAt]);
+    }
+    if (startAfter != _sentinel) {
+      query = query.startAfter([startAfter]);
+    }
+    if (endAt != _sentinel) {
+      query = query.endAt([endAt]);
+    }
+    if (endBefore != _sentinel) {
+      query = query.endBefore([endBefore]);
+    }
+
+    return _$EventQuery(query, _collection);
+  }
+
+  EventQuery orderByAfterPictures({
+    bool descending = false,
+    Object? startAt = _sentinel,
+    Object? startAfter = _sentinel,
+    Object? endAt = _sentinel,
+    Object? endBefore = _sentinel,
+    EventDocumentSnapshot? startAtDocument,
+    EventDocumentSnapshot? endAtDocument,
+    EventDocumentSnapshot? endBeforeDocument,
+    EventDocumentSnapshot? startAfterDocument,
+  }) {
+    var query = reference.orderBy('afterPictures', descending: descending);
+
+    if (startAtDocument != null) {
+      query = query.startAtDocument(startAtDocument.snapshot);
+    }
+    if (startAfterDocument != null) {
+      query = query.startAfterDocument(startAfterDocument.snapshot);
+    }
+    if (endAtDocument != null) {
+      query = query.endAtDocument(endAtDocument.snapshot);
+    }
+    if (endBeforeDocument != null) {
+      query = query.endBeforeDocument(endBeforeDocument.snapshot);
+    }
+
+    if (startAt != _sentinel) {
+      query = query.startAt([startAt]);
+    }
+    if (startAfter != _sentinel) {
+      query = query.startAfter([startAfter]);
+    }
+    if (endAt != _sentinel) {
+      query = query.endAt([endAt]);
+    }
+    if (endBefore != _sentinel) {
+      query = query.endBefore([endBefore]);
+    }
+
+    return _$EventQuery(query, _collection);
+  }
+
   EventQuery orderByGarbageCollected({
     bool descending = false,
     Object? startAt = _sentinel,
@@ -1854,10 +2229,10 @@ class _$EventQuery extends QueryReference<EventQuerySnapshot>
 class EventQuerySnapshot
     extends FirestoreQuerySnapshot<EventQueryDocumentSnapshot> {
   EventQuerySnapshot._(
-    this.snapshot,
-    this.docs,
-    this.docChanges,
-  );
+      this.snapshot,
+      this.docs,
+      this.docChanges,
+      );
 
   final QuerySnapshot<Event> snapshot;
 
@@ -1889,66 +2264,71 @@ class EventQueryDocumentSnapshot extends FirestoreQueryDocumentSnapshot
 // **************************************************************************
 
 LocationType _$LocationTypeFromJson(Map<String, dynamic> json) => LocationType(
-      json['name'] as String,
-    );
+  json['name'] as String,
+);
 
 Map<String, dynamic> _$LocationTypeToJson(LocationType instance) =>
     <String, dynamic>{
       'name': instance.name,
     };
 
-Geo _$GeoFromJson(Map<String, dynamic> json) => Geo(
-      json['Latitude'] as num,
-      json['Longitude'] as num,
-    );
+Location _$LocationFromJson(Map<String, dynamic> json){
 
-Map<String, dynamic> _$GeoToJson(Geo instance) => <String, dynamic>{
-      'Latitude': instance.Latitude,
-      'Longitude': instance.Longitude,
-    };
 
-Location _$LocationFromJson(Map<String, dynamic> json) => Location(
-      Geo.fromJson(json['loc'] as Map<String, dynamic>),
-      json['type'],
-    );
+  // String a = "";
+  // json["type"].get().then((DocumentSnapshot documentSnapshot) {
+  //   if (documentSnapshot.exists) {
+  //     a = documentSnapshot["name"];
+  //   }});
+
+
+  return Location(
+      Geo.fromGP(json['geo']),
+      LocationTypeDocumentReference(json["type"] ) // PROBLEM IS HERE
+  );
+}
 
 Map<String, dynamic> _$LocationToJson(Location instance) => <String, dynamic>{
-      'loc': instance.geo,
-      'type': instance.type,
-    };
+  'geo': instance.geo,
+  'type': instance.type,
+};
 
 Role _$RoleFromJson(Map<String, dynamic> json) => Role(
-      json['name'] as String,
-      json['members'],
-    );
+  json['name'] as String,
+  json['members'],
+);
 
 Map<String, dynamic> _$RoleToJson(Role instance) => <String, dynamic>{
-      'name': instance.name,
-      'members': instance.members,
-    };
+  'name': instance.name,
+  'members': instance.members,
+};
 
 Event _$EventFromJson(Map<String, dynamic> json) => Event(
-      json['name'] as String,
-      json['description'] as String,
-      DateTime.parse(json['creationDate'] as String),
-      DateTime.parse(json['orgDate'] as String),
-      json['organizers'],
-      json['participants'],
-      json['beforePictures'],
-      json['afterPictures'],
-      json['garbageCollected'] as num,
-      json['location'],
-    );
+  json['name'] as String,
+  json['description'] as String,
+  // DateTime.parse(json['creationDate'] as String), // problem was here
+  // DateTime.parse(json['orgDate'] as String),
+json['creationDate'].toDate() ,
+json['orgDate'].toDate(),
+  (json['organizers'] as List<dynamic>).map((e) => e as String).toList(),
+  (json['participants'] as List<dynamic>).map((e) => e as String).toList(),
+  (json['beforePictures'] as List<dynamic>)
+      .map((e) => e as String)
+      .toList(),
+  (json['afterPictures'] as List<dynamic>).map((e) => e as String).toList(),
+  json['garbageCollected'] as num,
+  json['location'], // PROBLEM IS HERE
+);
 
 Map<String, dynamic> _$EventToJson(Event instance) => <String, dynamic>{
-      'name': instance.name,
-      'description': instance.description,
-      'creationDate': instance.creationDate.toIso8601String(),
-      'orgDate': instance.orgDate.toIso8601String(),
-      'organizers': instance.organizers,
-      'participants': instance.participants,
-      'beforePictures': instance.beforePictures,
-      'afterPictures': instance.afterPictures,
-      'garbageCollected': instance.garbageCollected,
-      'location': instance.location,
-    };
+  'name': instance.name,
+  'description': instance.description,
+  'creationDate': instance.creationDate.toIso8601String(),
+  'orgDate': instance.orgDate.toIso8601String(),
+  'organizers': instance.organizers,
+  'participants': instance.participants,
+  'beforePictures': instance.beforePictures,
+  'afterPictures': instance.afterPictures,
+  'garbageCollected': instance.garbageCollected,
+  'location': instance.location,
+};

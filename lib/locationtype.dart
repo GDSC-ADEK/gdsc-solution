@@ -16,13 +16,21 @@ class LocationType {
   String toString() => toJson().toString();
 }
 
-@JsonSerializable()
+
 class Geo {
-  Geo(this.Latitude, this.Longitude);
-  num Latitude;
-  num Longitude;
-  factory Geo.fromJson(Map<String, Object?> json) => _$GeoFromJson(json);
-  Map<String, Object?> toJson() => _$GeoToJson(this);
+  Geo(this.latitude, this.longitude);
+  Geo.fromGP(GeoPoint gp): latitude = gp.latitude, longitude=gp.longitude;
+  num latitude;
+  num longitude;
+  factory Geo.fromJson(Map<String, Object?> json) {
+    return Geo(json["latitude"] as double, json["longitude"] as double);
+  }
+  Map<String, Object?> toJson(){
+    return {
+      "latitude" : latitude,
+      "longitude" : longitude
+    };
+  }
   @override
   String toString() => toJson().toString();
 }
@@ -92,42 +100,5 @@ final roleRefs = RoleCollectionReference();
 @Collection<Event>('Events')
 final eventRefs = EventCollectionReference();
 
-// vanaf hier is niet wat je gebruikt als je de ODM gebruikt
-var locTypeJson = {"name": "somename"};
-var locJson = {
-  "loc": {"Longitude": "", "Latitude": ""},
-  "type": "idk, I expect a link to the LT type"
-};
-var roleJson = {
-  "name": "",
-  "members": [""]
-};
-var EventJson = {
-  "name": "",
-  "description": "",
-  "complete": false,
-  "publish": false,
-  "creationDate": "2012-04-23T18:25:43.511Z",
-  "orgDate": "2012-04-23T18:25:43.511Z",
-  "organizers": [""],
-  "participants": [""],
-  "beforePictures": [""], // list of urls to pics? not sure yet
-  "afterPictures": [""],
-  "garbageCollected": 0,
-  "location": "", // url of location? not sure
-};
-
-var endpoints = {
-  "/LocationTypes": List<LocationType>,
-  "LocationTypes/{ID}": LocationType,
-  "/Locations": List<Location>,
-  "/Location": Location,
-  "Roles/": List<Role>,
-  "Roles/Organizer": Role("Organizer", []),
-  "/Events/": List<Event>,
-  "Events/{ID}": Event
-};
-
-// tot hier is niet wat je voor odm gebruikt
 
 

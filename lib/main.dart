@@ -23,7 +23,7 @@ import 'firebase_options.dart';
 import "locationtype.dart";
 
 import 'package:google_sign_in/google_sign_in.dart';
-// Unrushed-Exciting-Sensation7
+
 void main() async {
   runApp(MyApp());
 }
@@ -449,7 +449,7 @@ class RolesList extends StatelessWidget {
 
           // Access the QuerySnapshot
           RoleQuerySnapshot querySnapshot = snapshot.requireData;
-          print(querySnapshot.docs[0].data);
+          // print(querySnapshot.docs[0].data);  // DEBUG
 
           return ListView.builder(
             itemCount: querySnapshot.docs.length,
@@ -470,8 +470,11 @@ class LocationsList extends StatelessWidget {
         ref: locRefs,
         builder: (context, AsyncSnapshot<LocationQuerySnapshot> snapshot,
             Widget? child) {
-          if (snapshot.hasError)
+          if (snapshot.hasError){
+            print(snapshot.error);
             return Text('locations: Something went wrong!');
+          }
+
           if (!snapshot.hasData) return Text('Loading locations...');
 
           // Access the QuerySnapshot
@@ -497,13 +500,16 @@ class LoctypeList extends StatelessWidget {
         ref: LTRef,
         builder: (context, AsyncSnapshot<LocationTypeQuerySnapshot> snapshot,
             Widget? child) {
-          if (snapshot.hasError)
+          if (snapshot.hasError){
+            print(snapshot.error);
             return Text('locationtypes: Something went wrong!');
+          }
+
           if (!snapshot.hasData) return Text('Loading locationtypes...');
 
           // Access the QuerySnapshot
           LocationTypeQuerySnapshot querySnapshot = snapshot.requireData;
-          print(querySnapshot.docs[0].data);
+          // print(querySnapshot.docs[0].data); // DEBUG
 
           return ListView.builder(
             itemCount: querySnapshot.docs.length,
@@ -524,8 +530,11 @@ class EventsList extends StatelessWidget {
         ref: eventRefs,
         builder: (context, AsyncSnapshot<EventQuerySnapshot> snapshot,
             Widget? child) {
-          if (snapshot.hasError)
-            return Text('locationtypes: Something went wrong!');
+          if (snapshot.hasError){
+            print(snapshot.error);
+            return Text('EVENTS: Something went wrong!');
+          }
+
           if (!snapshot.hasData) return Text('Loading locationtypes...');
 
           // Access the QuerySnapshot
