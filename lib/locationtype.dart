@@ -19,8 +19,8 @@ class LocationType {
 @JsonSerializable()
 class Geo {
   Geo(this.Latitude, this.Longitude);
-  String Latitude;
-  String Longitude;
+  num Latitude;
+  num Longitude;
   factory Geo.fromJson(Map<String, Object?> json) => _$GeoFromJson(json);
   Map<String, Object?> toJson() => _$GeoToJson(this);
   @override
@@ -29,8 +29,8 @@ class Geo {
 
 @JsonSerializable()
 class Location {
-  Location(this.loc, this.type);
-  final Geo loc;
+  Location(this.geo, this.type);
+  final Geo geo;
   final LocationTypeDocumentReference type;
   factory Location.fromJson(Map<String, Object?> json) =>
       _$LocationFromJson(json);
@@ -70,10 +70,10 @@ class Event {
   final bool publish = false;
   final DateTime creationDate;
   final DateTime orgDate;
-  final organizers;
-  final participants;
-  final beforePictures; // list of urls to pics? not sure yet
-  final afterPictures;
+  final List<String> organizers;
+  final List<String> participants;
+  final List<String> beforePictures; // list of urls to pics? not sure yet
+  final List<String> afterPictures;
   final num garbageCollected;
   final LocationDocumentReference location;
   factory Event.fromJson(Map<String, Object?> json) => _$EventFromJson(json);
@@ -121,7 +121,7 @@ var endpoints = {
   "/LocationTypes": List<LocationType>,
   "LocationTypes/{ID}": LocationType,
   "/Locations": List<Location>,
-  "/Locations": Location,
+  "/Location": Location,
   "Roles/": List<Role>,
   "Roles/Organizer": Role("Organizer", []),
   "/Events/": List<Event>,

@@ -23,7 +23,7 @@ import 'firebase_options.dart';
 import "locationtype.dart";
 
 import 'package:google_sign_in/google_sign_in.dart';
-
+// Unrushed-Exciting-Sensation7
 void main() async {
   runApp(MyApp());
 }
@@ -483,7 +483,7 @@ class LocationsList extends StatelessWidget {
             itemBuilder: (context, index) {
               // Access the User instance
               Location loc = querySnapshot.docs[index].data;
-              return Text('Location geo: ${loc.loc}, type:${loc.type} ');
+              return Text('Location geo: ${loc.geo}, type:${loc.type} ');
             },
           );
         });
@@ -524,8 +524,9 @@ class EventsList extends StatelessWidget {
         ref: eventRefs,
         builder: (context, AsyncSnapshot<EventQuerySnapshot> snapshot,
             Widget? child) {
-          if (snapshot.hasError) return Text('events: Something went wrong!');
-          if (!snapshot.hasData) return Text('Loading events...');
+          if (snapshot.hasError)
+            return Text('locationtypes: Something went wrong!');
+          if (!snapshot.hasData) return Text('Loading locationtypes...');
 
           // Access the QuerySnapshot
           EventQuerySnapshot querySnapshot = snapshot.requireData;
@@ -535,8 +536,8 @@ class EventsList extends StatelessWidget {
             itemCount: querySnapshot.docs.length,
             itemBuilder: (context, index) {
               // Access the User instance
-              Event event = querySnapshot.docs[index].data;
-              return Text('Event name: ${event.name}');
+              Event ltype = querySnapshot.docs[index].data;
+              return Text('Event name: ${ltype.name}');
             },
           );
         });

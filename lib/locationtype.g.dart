@@ -1898,8 +1898,8 @@ Map<String, dynamic> _$LocationTypeToJson(LocationType instance) =>
     };
 
 Geo _$GeoFromJson(Map<String, dynamic> json) => Geo(
-      json['Latitude'] as String,
-      json['Longitude'] as String,
+      json['Latitude'] as num,
+      json['Longitude'] as num,
     );
 
 Map<String, dynamic> _$GeoToJson(Geo instance) => <String, dynamic>{
@@ -1913,7 +1913,7 @@ Location _$LocationFromJson(Map<String, dynamic> json) => Location(
     );
 
 Map<String, dynamic> _$LocationToJson(Location instance) => <String, dynamic>{
-      'loc': instance.loc,
+      'loc': instance.geo,
       'type': instance.type,
     };
 
