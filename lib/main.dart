@@ -4,12 +4,15 @@ flutter build apk -> https://docs.flutter.dev/release/breaking-changes/kotlin-ve
 https://firebase.google.com/codelabs/firebase-get-to-know-flutter#0
 https://firebase.flutter.dev/docs/auth/usage
 https://firebase.flutter.dev/docs/auth/social/
+
+google sign in example -> https://github.com/flutter/plugins/blob/master/packages/google_sign_in/google_sign_in/example/lib/main.dart
 */
 
 //python -m http.server 8000
 //import 'dart:html';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,89 +22,109 @@ import 'package:cloud_firestore_odm/cloud_firestore_odm.dart';
 import 'firebase_options.dart';
 import "locationtype.dart";
 
-void main() async {
-  try {
-    WidgetsFlutterBinding.ensureInitialized();
-  } catch (e, st) {
-    print(e);
-    print(st);
-  }
-  await Firebase.initializeApp(
-      options: DefaultFirebaseOptions
-          .android); // TODO: change this to .currentPlatform later
+import 'package:google_sign_in/google_sign_in.dart';
 
-  // We sign the user in anonymously, meaning they get a user ID without having
-  // to provide credentials.
-  await FirebaseAuth.instance.signInAnonymously();
+void main() async {
   runApp(MyApp());
 }
 
+class MyAppState extends ChangeNotifier {
+  bool _isNGO = false;
+  User? _user;
+  String? _error;
+
+  bool get isNGO => _isNGO;
+  set isNGO(bool value) {
+    _isNGO = value;
+    notifyListeners();
+  }
+
+  User? get user => _user;
+
+  String? get error => _error;
+  set error(String? value) {
+    _error = value;
+    notifyListeners();
+  }
+
+  MyAppState() {
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+    } catch (e, st) {
+      print(e);
+      print(st);
+    }
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions
+            .android); // TODO: change this to .currentPlatform later
+
+    // We sign the user in anonymously, meaning they get a user ID without having
+    // to provide credentials.
+    //await FirebaseAuth.instance.signInAnonymously();
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      _user = user;
+      notifyListeners();
+    });
+  }
+
+  Future<UserCredential> signInWithGoogle() async {
+    // Trigger the authentication flow
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+    // Obtain the auth details from the request
+    final GoogleSignInAuthentication? googleAuth =
+        await googleUser?.authentication;
+
+    // Create a new credential
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth?.accessToken,
+      idToken: googleAuth?.idToken,
+    );
+
+    // Once signed in, return the UserCredential
+    return await FirebaseAuth.instance.signInWithCredential(credential);
+  }
+
+  Future<void> signOut() async {
+    await FirebaseAuth.instance.signOut();
+  }
+}
+
 class MyApp extends StatelessWidget {
-  Widget build(BuildContext context) => MaterialApp(home: EventScreen());
+  Widget build(BuildContext context) => ChangeNotifierProvider(
+        create: (context) => MyAppState(),
+        child: MaterialApp(
+          home: Consumer<MyAppState>(
+            builder: (context, state, _) => state.error != null
+                ? Center(child: Text(state.error!))
+                : (state.user != null
+                    ? EventScreen()
+                    : Center(
+                        child: TextButton(
+                          child: Text('Sign in'),
+                          onPressed: () {
+                            try {
+                              Provider.of<MyAppState>(context, listen: false)
+                                  .signInWithGoogle();
+                            } on FirebaseAuthException catch (e) {
+                              state.error = e.code;
+                            }
+                          },
+                        ),
+                      )),
+          ),
+        ),
+      );
 }
 
-class EventScreen extends StatefulWidget {
-  @override
-  State<EventScreen> createState() => _EventScreenState();
-}
-
-class _EventScreenState extends State<EventScreen> {
-  bool isNGO = false;
+class EventScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'View',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: ListTile(
-                title: Text('Open events'),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: ListTile(
-                title: Text('Closed events'),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: ListTile(
-                title: Text('Favorite events'),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  isNGO = !isNGO;
-                });
-                Navigator.pop(context);
-              },
-              child: ListTile(
-                title: Text('Toggle NGO'),
-              ),
-            ),
-          ],
-        ),
-      ),
+      drawer: EventScreenDrawer(),
       appBar: AppBar(
         title: Text('Events'),
       ),
@@ -115,14 +138,14 @@ class _EventScreenState extends State<EventScreen> {
           Expanded(
             child: ListView(
               children: [
-                for (int i = 0; i < 30; i++) EventTile(isNGO),
+                for (int i = 0; i < 30; i++) EventTile(),
               ],
             ),
           ),
-          LocationsList(),
-          // LoctypeList(),
-          RolesList(),
-          // EventsList(),
+          Expanded(child: LocationsList()),
+          Expanded(child: LoctypeList()),
+          Expanded(child: RolesList()),
+          Expanded(child: EventsList()),
           Divider(),
           Row(
             children: [
@@ -143,22 +166,24 @@ class _EventScreenState extends State<EventScreen> {
                 ),
               ),
               Expanded(
-                child: Container(
-                  height: 60,
-                  child: !isNGO
-                      ? null
-                      : TextButton(
-                          child: Text('Organize'),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    OrganizeScreen(),
-                              ),
-                            );
-                          },
-                        ),
+                child: Consumer<MyAppState>(
+                  builder: (context, state, _) => Container(
+                    height: 60,
+                    child: !state.isNGO
+                        ? null
+                        : TextButton(
+                            child: Text('Organize'),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (BuildContext context) =>
+                                      OrganizeScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
                 ),
               ),
             ],
@@ -169,9 +194,86 @@ class _EventScreenState extends State<EventScreen> {
   }
 }
 
+class EventScreenDrawer extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: Colors.blue,
+            ),
+            child: Text(
+              'View',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Provider.of<MyAppState>(context, listen: false).signOut();
+            },
+            child: ListTile(
+              title: Text('SignOut'),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: ListTile(
+              title: Text('Open events'),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: ListTile(
+              title: Text('Closed events'),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: ListTile(
+              title: Text('Favorite events'),
+            ),
+          ),
+          Consumer<MyAppState>(
+            builder: (context, state, _) => TextButton(
+              onPressed: !state.isNGO
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                    },
+              child: ListTile(
+                title: Text('My events'),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              var state = Provider.of<MyAppState>(context, listen: true);
+              state.isNGO = !state.isNGO;
+              Navigator.pop(context);
+            },
+            child: ListTile(
+              title: Text('Toggle NGO'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class EventTile extends StatefulWidget {
-  bool isNGO;
-  EventTile(this.isNGO);
+  EventTile();
   @override
   State<EventTile> createState() => _EventTileState();
 }
@@ -205,7 +307,6 @@ class _EventTileState extends State<EventTile> {
                 'Cultuurtuinlaan 23',
                 '+5978855645',
                 false,
-                widget.isNGO,
               ),
             ),
           );
@@ -224,17 +325,16 @@ class EventDetail extends StatelessWidget {
   final String location;
   final String phone_number;
   final bool joined;
-  final bool isNGO;
   EventDetail(
-      this.name,
-      this.short_message,
-      this.date,
-      this.max_attendees,
-      this.number_of_signups,
-      this.location,
-      this.phone_number,
-      this.joined,
-      this.isNGO);
+    this.name,
+    this.short_message,
+    this.date,
+    this.max_attendees,
+    this.number_of_signups,
+    this.location,
+    this.phone_number,
+    this.joined,
+  );
 
   Widget build(BuildContext context) {
     return Scaffold(
@@ -253,11 +353,13 @@ class EventDetail extends StatelessWidget {
             title: Text('Phone number lead: $phone_number'),
             subtitle: Text('(will get send to the participants)'),
           ),
-          TextButton(
-            onPressed: () {},
-            child: isNGO
-                ? Text('Wrap up')
-                : (joined ? Text('Unjoin') : Text('Join')),
+          Consumer<MyAppState>(
+            builder: (context, state, _) => TextButton(
+              onPressed: () {},
+              child: state.isNGO
+                  ? Text('Wrap up')
+                  : (joined ? Text('Unjoin') : Text('Join')),
+            ),
           ),
         ],
       ),
@@ -342,7 +444,7 @@ class RolesList extends StatelessWidget {
         ref: roleRefs,
         builder: (context, AsyncSnapshot<RoleQuerySnapshot> snapshot,
             Widget? child) {
-          if (snapshot.hasError) return Text('Something went wrong!');
+          if (snapshot.hasError) return Text('roles: Something went wrong!');
           if (!snapshot.hasData) return Text('Loading roles...');
 
           // Access the QuerySnapshot
@@ -368,7 +470,8 @@ class LocationsList extends StatelessWidget {
         ref: locRefs,
         builder: (context, AsyncSnapshot<LocationQuerySnapshot> snapshot,
             Widget? child) {
-          if (snapshot.hasError) return Text('Something went wrong!');
+          if (snapshot.hasError)
+            return Text('locations: Something went wrong!');
           if (!snapshot.hasData) return Text('Loading locations...');
 
           // Access the QuerySnapshot
@@ -394,7 +497,8 @@ class LoctypeList extends StatelessWidget {
         ref: LTRef,
         builder: (context, AsyncSnapshot<LocationTypeQuerySnapshot> snapshot,
             Widget? child) {
-          if (snapshot.hasError) return Text('Something went wrong!');
+          if (snapshot.hasError)
+            return Text('locationtypes: Something went wrong!');
           if (!snapshot.hasData) return Text('Loading locationtypes...');
 
           // Access the QuerySnapshot
@@ -420,7 +524,7 @@ class EventsList extends StatelessWidget {
         ref: eventRefs,
         builder: (context, AsyncSnapshot<EventQuerySnapshot> snapshot,
             Widget? child) {
-          if (snapshot.hasError) return Text('Something went wrong!');
+          if (snapshot.hasError) return Text('events: Something went wrong!');
           if (!snapshot.hasData) return Text('Loading events...');
 
           // Access the QuerySnapshot
@@ -432,7 +536,7 @@ class EventsList extends StatelessWidget {
             itemBuilder: (context, index) {
               // Access the User instance
               Event event = querySnapshot.docs[index].data;
-              return Text('LT name: ${event.name}');
+              return Text('Event name: ${event.name}');
             },
           );
         });
