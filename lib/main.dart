@@ -11,6 +11,7 @@ google sign in example -> https://github.com/flutter/plugins/blob/master/package
 //python -m http.server 8000
 //import 'dart:html';
 
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,9 +19,11 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore_odm/cloud_firestore_odm.dart';
 import 'firebase_options.dart';
-import "locationtype.dart";
+import 'database.dart';
+import "models/location.dart";
+import "models/locationtype.dart";
+import 'models/events.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -28,12 +31,15 @@ void main() async {
   runApp(MyApp());
 }
 
+Fdatabase db = Fdatabase();
+
 class MyAppState extends ChangeNotifier {
   bool _isNGO = false;
   User? _user;
   String? _error;
 
   bool get isNGO => _isNGO;
+
   set isNGO(bool value) {
     _isNGO = value;
     notifyListeners();
@@ -42,6 +48,7 @@ class MyAppState extends ChangeNotifier {
   User? get user => _user;
 
   String? get error => _error;
+
   set error(String? value) {
     _error = value;
     notifyListeners();
@@ -69,6 +76,7 @@ class MyAppState extends ChangeNotifier {
       _user = user;
       notifyListeners();
     });
+    db = Fdatabase();
   }
 
   Future<UserCredential> signInWithGoogle() async {
@@ -142,10 +150,10 @@ class EventScreen extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(child: LocationsList()),
-          Expanded(child: LoctypeList()),
-          Expanded(child: RolesList()),
-          Expanded(child: EventsList()),
+          // Expanded(child: LocList()),
+          // Expanded(child: LocTypeList()),
+          Expanded(child: EventList()),
+          // Expanded(child: RolesList()),
           Divider(),
           Row(
             children: [
@@ -274,12 +282,14 @@ class EventScreenDrawer extends StatelessWidget {
 
 class EventTile extends StatefulWidget {
   EventTile();
+
   @override
   State<EventTile> createState() => _EventTileState();
 }
 
 class _EventTileState extends State<EventTile> {
   bool checked = false;
+
   Widget build(BuildContext context) {
     return ListTile(
       title: Text('Latour'),
@@ -325,6 +335,7 @@ class EventDetail extends StatelessWidget {
   final String location;
   final String phone_number;
   final bool joined;
+
   EventDetail(
     this.name,
     this.short_message,
@@ -437,118 +448,195 @@ class StatisticsScreen extends StatelessWidget {
 
 // TODO README: https://firebase.flutter.dev/docs/firestore-odm/references
 // read ^ to see widgets, reading, querying
-class RolesList extends StatelessWidget {
+// class RolesList extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return FirestoreBuilder<RoleQuerySnapshot>(
+//         ref: roleRefs,
+//         builder: (context, AsyncSnapshot<RoleQuerySnapshot> snapshot,
+//             Widget? child) {
+//           if (snapshot.hasError) return Text('roles: Something went wrong!');
+//           if (!snapshot.hasData) return Text('Loading roles...');
+//
+//           // Access the QuerySnapshot
+//           RoleQuerySnapshot querySnapshot = snapshot.requireData;
+//           // print(querySnapshot.docs[0].data);  // DEBUG
+//
+//           return ListView.builder(
+//             itemCount: querySnapshot.docs.length,
+//             itemBuilder: (context, index) {
+//               // Access the User instance
+//               Role role = querySnapshot.docs[index].data;
+//               return Text('Role name: ${role.name}, members ${role.members}');
+//             },
+//           );
+//         });
+//   }
+// }
+//
+// class LocationsList extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return FirestoreBuilder<LocationQuerySnapshot>(
+//         ref: locRefs,
+//         builder: (context, AsyncSnapshot<LocationQuerySnapshot> snapshot,
+//             Widget? child) {
+//           if (snapshot.hasError){
+//             print(snapshot.error);
+//             return Text('locations: ${snapshot.error}');
+//           }
+//
+//           if (!snapshot.hasData) return Text('Loading locations...');
+//
+//           // Access the QuerySnapshot
+//           LocationQuerySnapshot querySnapshot = snapshot.requireData;
+//           print(querySnapshot.docs[0].data);
+//
+//           return ListView.builder(
+//             itemCount: querySnapshot.docs.length,
+//             itemBuilder: (context, index) {
+//               // Access the User instance
+//               Location loc = querySnapshot.docs[index].data;
+//               print("LOC = $loc");
+//               return Text('Location geo: ${loc.geo}, type:${loc.type} ');
+//             },
+//           );
+//         });
+//   }
+// }
+//
+// class LoctypeList extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return FirestoreBuilder<LocationTypeQuerySnapshot>(
+//         ref: LTRef,
+//         builder: (context, AsyncSnapshot<LocationTypeQuerySnapshot> snapshot,
+//             Widget? child) {
+//           if (snapshot.hasError){
+//             print(snapshot.error);
+//             return Text('locationtypes: Something went wrong!');
+//           }
+//
+//           if (!snapshot.hasData) return Text('Loading locationtypes...');
+//
+//           // Access the QuerySnapshot
+//           LocationTypeQuerySnapshot querySnapshot = snapshot.requireData;
+//           // print(querySnapshot.docs[0].data); // DEBUG
+//
+//           return ListView.builder(
+//             itemCount: querySnapshot.docs.length,
+//             itemBuilder: (context, index) {
+//               // Access the User instance
+//               LocationType ltype = querySnapshot.docs[index].data;
+//               return Text('LT name: ${ltype.name}');
+//             },
+//           );
+//         });
+//   }
+// }
+
+class LocTypeList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return FirestoreBuilder<RoleQuerySnapshot>(
-        ref: roleRefs,
-        builder: (context, AsyncSnapshot<RoleQuerySnapshot> snapshot,
-            Widget? child) {
-          if (snapshot.hasError) return Text('roles: Something went wrong!');
-          if (!snapshot.hasData) return Text('Loading roles...');
-
-          // Access the QuerySnapshot
-          RoleQuerySnapshot querySnapshot = snapshot.requireData;
-          // print(querySnapshot.docs[0].data);  // DEBUG
-
-          return ListView.builder(
-            itemCount: querySnapshot.docs.length,
-            itemBuilder: (context, index) {
-              // Access the User instance
-              Role role = querySnapshot.docs[index].data;
-              return Text('Role name: ${role.name}, members ${role.members}');
-            },
-          );
-        });
-  }
-}
-
-class LocationsList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return FirestoreBuilder<LocationQuerySnapshot>(
-        ref: locRefs,
-        builder: (context, AsyncSnapshot<LocationQuerySnapshot> snapshot,
-            Widget? child) {
-          if (snapshot.hasError){
-            print(snapshot.error);
-            return Text('locations: Something went wrong!');
+    return StreamBuilder<QuerySnapshot>(
+        stream: db.getLTs(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Something went wrong');
           }
-
-          if (!snapshot.hasData) return Text('Loading locations...');
-
-          // Access the QuerySnapshot
-          LocationQuerySnapshot querySnapshot = snapshot.requireData;
-          print(querySnapshot.docs[0].data);
-
-          return ListView.builder(
-            itemCount: querySnapshot.docs.length,
-            itemBuilder: (context, index) {
-              // Access the User instance
-              Location loc = querySnapshot.docs[index].data;
-              return Text('Location geo: ${loc.geo}, type:${loc.type} ');
-            },
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          var docs = snapshot.data?.docs;
+          return ListView(
+            padding: const EdgeInsets.only(top: 20.0),
+            // 2
+            children: docs!.map((data) => LocTypeItem(context, data)).toList(),
           );
+
         });
   }
 }
 
-class LoctypeList extends StatelessWidget {
+Widget LocTypeItem(BuildContext context, DocumentSnapshot snapshot) {
+  // 4
+  final lt = LocationType.fromSnapshot(snapshot);
+  return ListTile(
+    title: Text(lt.name),
+    subtitle: Text(lt.id!),
+  );
+}
+
+
+class LocList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return FirestoreBuilder<LocationTypeQuerySnapshot>(
-        ref: LTRef,
-        builder: (context, AsyncSnapshot<LocationTypeQuerySnapshot> snapshot,
-            Widget? child) {
-          if (snapshot.hasError){
-            print(snapshot.error);
-            return Text('locationtypes: Something went wrong!');
+    return StreamBuilder<QuerySnapshot>(
+        stream: db.getLocs(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Something went wrong');
           }
-
-          if (!snapshot.hasData) return Text('Loading locationtypes...');
-
-          // Access the QuerySnapshot
-          LocationTypeQuerySnapshot querySnapshot = snapshot.requireData;
-          // print(querySnapshot.docs[0].data); // DEBUG
-
-          return ListView.builder(
-            itemCount: querySnapshot.docs.length,
-            itemBuilder: (context, index) {
-              // Access the User instance
-              LocationType ltype = querySnapshot.docs[index].data;
-              return Text('LT name: ${ltype.name}');
-            },
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          var docs = snapshot.data?.docs;
+          return ListView(
+            padding: const EdgeInsets.only(top: 20.0),
+            // 2
+            children: docs!.map((data) => LocItem(context, data)).toList(),
           );
+
         });
   }
 }
 
-class EventsList extends StatelessWidget {
+Widget LocItem(BuildContext context, DocumentSnapshot snapshot) {
+  // 4
+  final loc = Location.fromSnapshot(snapshot);
+  return ListTile(
+    title: Text("GEO: ${loc.geo.latitude}, ${loc.geo.longitude}, ID: ${loc.id}"),
+    subtitle: Text("LT: ${loc.type.path}")
+  );
+}
+
+
+class EventList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return FirestoreBuilder<EventQuerySnapshot>(
-        ref: eventRefs,
-        builder: (context, AsyncSnapshot<EventQuerySnapshot> snapshot,
-            Widget? child) {
-          if (snapshot.hasError){
-            print(snapshot.error);
-            return Text('EVENTS: Something went wrong!');
+    return StreamBuilder<QuerySnapshot>(
+        stream: db.getEvents(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Something went wrong');
           }
-
-          if (!snapshot.hasData) return Text('Loading locationtypes...');
-
-          // Access the QuerySnapshot
-          EventQuerySnapshot querySnapshot = snapshot.requireData;
-          print(querySnapshot.docs[0].data);
-
-          return ListView.builder(
-            itemCount: querySnapshot.docs.length,
-            itemBuilder: (context, index) {
-              // Access the User instance
-              Event ltype = querySnapshot.docs[index].data;
-              return Text('Event name: ${ltype.name}');
-            },
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          var docs = snapshot.data?.docs;
+          return ListView(
+            padding: const EdgeInsets.only(top: 20.0),
+            // 2
+            children: docs!.map((data) => EventItem(context, data)).toList(),
           );
+
         });
   }
 }
+
+Widget EventItem(BuildContext context, DocumentSnapshot snapshot) {
+  // 4
+  final e = Event.fromSnapshot(snapshot);
+  return ListTile(
+      title: Text("Event( name:${e.name},\n"
+          "published: ${e.publish},\n"
+          "created: ${e.creationDate},\n"
+          "organizers: ${e.organizers},\n"
+          "collected: ${e.garbageCollected} \n"
+          "loc: ${e.location.path})"),
+      subtitle: Text("id: ${e.id!}")
+  );
+}
+
+
+
