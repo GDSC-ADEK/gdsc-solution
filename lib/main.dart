@@ -11,7 +11,6 @@ google sign in example -> https://github.com/flutter/plugins/blob/master/package
 //python -m http.server 8000
 //import 'dart:html';
 
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -553,7 +552,6 @@ class LocTypeList extends StatelessWidget {
             // 2
             children: docs!.map((data) => LocTypeItem(context, data)).toList(),
           );
-
         });
   }
 }
@@ -566,7 +564,6 @@ Widget LocTypeItem(BuildContext context, DocumentSnapshot snapshot) {
     subtitle: Text(lt.id!),
   );
 }
-
 
 class LocList extends StatelessWidget {
   @override
@@ -586,7 +583,6 @@ class LocList extends StatelessWidget {
             // 2
             children: docs!.map((data) => LocItem(context, data)).toList(),
           );
-
         });
   }
 }
@@ -595,11 +591,10 @@ Widget LocItem(BuildContext context, DocumentSnapshot snapshot) {
   // 4
   final loc = Location.fromSnapshot(snapshot);
   return ListTile(
-    title: Text("GEO: ${loc.geo.latitude}, ${loc.geo.longitude}, ID: ${loc.id}"),
-    subtitle: Text("LT: ${loc.type.path}")
-  );
+      title:
+          Text("GEO: ${loc.geo.latitude}, ${loc.geo.longitude}, ID: ${loc.id}"),
+      subtitle: Text("LT: ${loc.type.path}"));
 }
-
 
 class EventList extends StatelessWidget {
   @override
@@ -619,7 +614,6 @@ class EventList extends StatelessWidget {
             // 2
             children: docs!.map((data) => EventItem(context, data)).toList(),
           );
-
         });
   }
 }
@@ -634,9 +628,5 @@ Widget EventItem(BuildContext context, DocumentSnapshot snapshot) {
           "organizers: ${e.organizers},\n"
           "collected: ${e.garbageCollected} \n"
           "loc: ${e.location.path})"),
-      subtitle: Text("id: ${e.id!}")
-  );
+      subtitle: Text("id: ${e.id!}"));
 }
-
-
-
