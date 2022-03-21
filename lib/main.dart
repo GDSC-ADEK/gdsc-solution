@@ -312,8 +312,6 @@ class EventTile extends StatelessWidget {
 
     //3e manier: call db.getImgsFromEvent(event)
     // returnt {"before": List<Future<Img>>>, "after" : List<Future<Img>>>}
-    Map<String, List<Future<Image>>> imagesFromEvent =
-        db.getImgsFromEvent(this.e);
   }
   final Event e;
   Widget imagewidget = Image.network(imagelink);
