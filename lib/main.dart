@@ -135,7 +135,8 @@ class LoginScreen extends StatelessWidget {
               //Ik moet gaan kijken hoe try catch blocks werken
               try {
                 Provider.of<MyAppState>(context, listen: false)
-                    .signInWithGoogle();
+                    // .signInWithGoogle();
+                    .signInAnonymously();
               } on FirebaseAuthException catch (e) {
                 showDialog(
                     context: context,
@@ -295,11 +296,30 @@ class EventScreenDrawer extends StatelessWidget {
 }
 
 class EventTile extends StatelessWidget {
-  final Event e;
-  final Widget imagewidget = Image.network(imagelink);
-  EventTile(this.e);
+  EventTile(this.e) {
+    // 1 manier om images te halen,
+    // call db.getImg on elements in afterpictures to get Future<Img>
+    Future<String> furl = db.getImgUrl("afterPictures/check.webp");
+    List<Future<String>> furls =
+        e.beforePictures.map((e) => db.getImgUrl(e)).toList();
+    var url = furl.then((value) => print(value));
+    // var img = Image.network(url);
+    //  2e manier, call db.getImgUrl to get Future<string>, which you then use
+    // on Image.network
+    // pass the value to Img.network to get Image
+    Future<Image> imgg = db.getImg("afterPictures/uncheck.png");
+    var imgg2 = db.getImg(e.beforePictures[0]);
 
+    //3e manier: call db.getImgsFromEvent(event)
+    // returnt {"before": List<Future<Img>>>, "after" : List<Future<Img>>>}
+    Map<String, List<Future<Image>>> imagesFromEvent =
+        db.getImgsFromEvent(this.e);
+  }
+  final Event e;
+  Widget imagewidget = Image.network(imagelink);
   Widget build(BuildContext context) {
+    var user = Provider.of<MyAppState>(context, listen: false)._user;
+    print(user!.uid);
     return ListTile(
       title: TextButton(
           onPressed: (() => Navigator.push(context,
@@ -475,95 +495,6 @@ class StatisticsScreen extends StatelessWidget {
   }
 }
 
-// TODO README: https://firebase.flutter.dev/docs/firestore-odm/references
-// read ^ to see widgets, reading, querying
-// class RolesList extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return FirestoreBuilder<RoleQuerySnapshot>(
-//         ref: roleRefs,
-//         builder: (context, AsyncSnapshot<RoleQuerySnapshot> snapshot,
-//             Widget? child) {
-//           if (snapshot.hasError) return Text('roles: Something went wrong!');
-//           if (!snapshot.hasData) return Text('Loading roles...');
-//
-//           // Access the QuerySnapshot
-//           RoleQuerySnapshot querySnapshot = snapshot.requireData;
-//           // print(querySnapshot.docs[0].data);  // DEBUG
-//
-//           return ListView.builder(
-//             itemCount: querySnapshot.docs.length,
-//             itemBuilder: (context, index) {
-//               // Access the User instance
-//               Role role = querySnapshot.docs[index].data;
-//               return Text('Role name: ${role.name}, members ${role.members}');
-//             },
-//           );
-//         });
-//   }
-// }
-//
-// class LocationsList extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return FirestoreBuilder<LocationQuerySnapshot>(
-//         ref: locRefs,
-//         builder: (context, AsyncSnapshot<LocationQuerySnapshot> snapshot,
-//             Widget? child) {
-//           if (snapshot.hasError){
-//             print(snapshot.error);
-//             return Text('locations: ${snapshot.error}');
-//           }
-//
-//           if (!snapshot.hasData) return Text('Loading locations...');
-//
-//           // Access the QuerySnapshot
-//           LocationQuerySnapshot querySnapshot = snapshot.requireData;
-//           print(querySnapshot.docs[0].data);
-//
-//           return ListView.builder(
-//             itemCount: querySnapshot.docs.length,
-//             itemBuilder: (context, index) {
-//               // Access the User instance
-//               Location loc = querySnapshot.docs[index].data;
-//               print("LOC = $loc");
-//               return Text('Location geo: ${loc.geo}, type:${loc.type} ');
-//             },
-//           );
-//         });
-//   }
-// }
-//
-// class LoctypeList extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return FirestoreBuilder<LocationTypeQuerySnapshot>(
-//         ref: LTRef,
-//         builder: (context, AsyncSnapshot<LocationTypeQuerySnapshot> snapshot,
-//             Widget? child) {
-//           if (snapshot.hasError){
-//             print(snapshot.error);
-//             return Text('locationtypes: Something went wrong!');
-//           }
-//
-//           if (!snapshot.hasData) return Text('Loading locationtypes...');
-//
-//           // Access the QuerySnapshot
-//           LocationTypeQuerySnapshot querySnapshot = snapshot.requireData;
-//           // print(querySnapshot.docs[0].data); // DEBUG
-//
-//           return ListView.builder(
-//             itemCount: querySnapshot.docs.length,
-//             itemBuilder: (context, index) {
-//               // Access the User instance
-//               LocationType ltype = querySnapshot.docs[index].data;
-//               return Text('LT name: ${ltype.name}');
-//             },
-//           );
-//         });
-//   }
-// }
-
 class LocTypeList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -632,6 +563,7 @@ class EventList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ^ This is Future<Image>, just pass to widget
     return StreamBuilder<QuerySnapshot>(
         stream: stream,
         builder: (context, snapshot) {

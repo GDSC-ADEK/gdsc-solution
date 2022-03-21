@@ -15,12 +15,14 @@ For help getting started with Flutter, view our
 [online documentation](https://flutter.dev/docs), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+Unrushed-Exciting-Sensation7
+DONE:
+we know how to interact with google maps api
+how to upload images to firebase
+roles ding
 
 TODO:
-create some wrapper functions for interacting with firebase, so Dernz can
-just use these in his widgets.
-getEventsByID(); // 1, gefilterd op ID
-getEvents(); // allemaal
-createEvent();
-updateEvent();
-Do this for all types.
+we have interfaced with firebase
+
+TODO maybe:
+favorites, user specific docs

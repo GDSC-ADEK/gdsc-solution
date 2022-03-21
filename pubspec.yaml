@@ -36,9 +36,10 @@ dependencies:
   camera: ^0.9.4+16
   path_provider: ^2.0.9
   path: ^1.8.0
+  firebase_storage: ^10.2.9
+  uuid: ^3.0.6
 
 dev_dependencies:
-  cloud_firestore_odm_generator: ^1.0.0-dev.10
   flutter_test:
     sdk: flutter
 

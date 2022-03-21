@@ -1,81 +1,130 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart' as firebase_core;
+import 'package:firebase_storage/firebase_storage.dart' as store;
+import "package:uuid/uuid.dart";
+import 'package:flutter/cupertino.dart';
 import 'models/locationtype.dart';
 import "models/location.dart";
 import "models/events.dart";
 
 FirebaseFirestore firestore = FirebaseFirestore.instance;
+store.FirebaseStorage storage = store.FirebaseStorage.instance;
 CollectionReference eventCollection =
     FirebaseFirestore.instance.collection('Events');
+Uuid _uuid = Uuid();
 
 class Fdatabase {
-  final CollectionReference LocTypes =
+  final CollectionReference _LocTypes =
       FirebaseFirestore.instance.collection('LocationTypes');
-  final CollectionReference locs =
+  final CollectionReference _locs =
       FirebaseFirestore.instance.collection('Locations');
-  final CollectionReference roles =
+  final CollectionReference _roles =
       FirebaseFirestore.instance.collection('Roles');
-  final CollectionReference events =
+  final CollectionReference _events =
       FirebaseFirestore.instance.collection('Events');
-  Stream<QuerySnapshot> getLTs() => LocTypes.snapshots();
-  Stream<QuerySnapshot> getLocs() => locs.snapshots();
-  Stream<QuerySnapshot> getRoles() => roles.snapshots();
-  Stream<QuerySnapshot> getEvents() => events.snapshots();
+  Stream<QuerySnapshot> getLTs() => _LocTypes.snapshots();
+  Stream<QuerySnapshot> getLocs() => _locs.snapshots();
+  Stream<QuerySnapshot> getRoles() => _roles.snapshots();
+  Stream<QuerySnapshot> getEvents() => _events.snapshots();
 
   Future<DocumentSnapshot> getLTByID(String id) {
-    return LocTypes.doc(id.trim()).get();
+    return _LocTypes.doc(id.trim()).get();
   }
 
   Future<DocumentSnapshot> getLocByID(String id) {
-    return locs.doc(id.trim()).get();
+    return _locs.doc(id.trim()).get();
   }
 
   Future<DocumentSnapshot> getEventByID(String id) {
-    return events.doc(id.trim()).get();
+    return _events.doc(id.trim()).get();
   }
 
   Future<DocumentReference> addLocType(LocationType lt) {
-    return LocTypes.add(lt.toJson());
+    return _LocTypes.add(lt.toJson());
   }
 
+  // locations
   void updateLocType(LocationType lt) async {
-    await LocTypes.doc(lt.id).update(lt.toJson());
+    await _LocTypes.doc(lt.id).update(lt.toJson());
   }
 
   void deleteLocType(LocationType lt) async {
-    await LocTypes.doc(lt.id).delete();
+    await _LocTypes.doc(lt.id).delete();
   }
 
   Future<DocumentReference> addLoc(Location l) {
-    return locs.add(l.toJson());
+    return _locs.add(l.toJson());
   }
 
   void updateLoc(Location l) async {
-    await locs.doc(l.id).update(l.toJson());
+    await _locs.doc(l.id).update(l.toJson());
   }
 
   void deleteLoc(Location l) async {
-    await locs.doc(l.id).delete();
+    await _locs.doc(l.id).delete();
   }
 
   Future<DocumentReference> addEvent(Event e) {
-    return events.add(e.toJson());
+    return _events.add(e.toJson());
   }
 
   void updateEvent(Event e) async {
-    await events.doc(e.id).update(e.toJson());
+    await _events.doc(e.id).update(e.toJson());
   }
 
   void deleteEvent(Event e) async {
-    await events.doc(e.id).delete();
+    await _events.doc(e.id).delete();
   }
 
   Stream<QuerySnapshot> getClosedEvents() =>
-      events.where("complete", isEqualTo: true).snapshots();
+      _events.where("complete", isEqualTo: true).snapshots();
   Stream<QuerySnapshot> getOpenEvents() =>
-      events.where("complete", isEqualTo: false).snapshots();
+      _events.where("complete", isEqualTo: false).snapshots();
   Stream<QuerySnapshot> getJoinedEvents(String userid) =>
-      events.where("participants", arrayContains: userid).snapshots();
+      _events.where("participants", arrayContains: userid).snapshots();
   Stream<QuerySnapshot> getOrganizedEvents(String userid) =>
-      events.where("organizers", arrayContains: userid).snapshots();
+      _events.where("organizers", arrayContains: userid).snapshots();
+
+  Future<String> getImgUrl(String imagePath) async {
+    try {
+      String downloadURL =
+          await store.FirebaseStorage.instance.ref(imagePath).getDownloadURL();
+      return downloadURL;
+    } catch (e) {
+      print(e);
+    }
+    return await "";
+  }
+
+  Future<Image> getImg(String imagePath) async {
+    try {
+      var img = await store.FirebaseStorage.instance.ref(imagePath).getData();
+      return Image.memory(img!);
+    } catch (e) {
+      print(e);
+      return await Image.memory(Uint8List(0));
+    }
+  }
+
+  Future<String> uploadImage(Image im, {bool before = true}) async {
+    String folder = (before) ? "beforePictures/" : "afterPictures";
+    String filename = folder + _uuid.v4();
+    try {
+      await store.FirebaseStorage.instance
+          .ref('uploads/file-to-upload.png')
+          .putBlob(im);
+      return filename;
+    } on firebase_core.FirebaseException catch (e) {
+      print("error");
+      return await "";
+    }
+  }
+
+  Map<String, List<Future<Image>>> getImgsFromEvent(Event e) {
+    var before = e.beforePictures.map((e) => getImg(e)).toList();
+    var after = e.afterPictures.map((e) => getImg(e)).toList();
+    return {"before": before, "after": after};
+  }
 }
