@@ -22,14 +22,18 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore_odm/cloud_firestore_odm.dart';
 import 'firebase_options.dart';
-import "locationtype.dart";
+import 'database.dart';
+import "models/location.dart";
+import "models/locationtype.dart";
+import 'models/events.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:camera/camera.dart';
 
 import 'camera.dart';
+
+var imagelink =
+    "https://static.rondreis.nl/rondreis-storage-production/media-3686-conversions-paramaribo-xxl-webp/w670xh449/eyJidWNrZXQiOiJyb25kcmVpcy1zdG9yYWdlLXByb2R1Y3Rpb24iLCJrZXkiOiJtZWRpYVwvMzY4NlwvY29udmVyc2lvbnNcL3BhcmFtYXJpYm8teHhsLndlYnAiLCJlZGl0cyI6eyJyZXNpemUiOnsid2lkdGgiOjY3MCwiaGVpZ2h0Ijo0NDl9fX0=";
 
 void main() async {
   try {
@@ -42,10 +46,12 @@ void main() async {
   runApp(MyApp());
 }
 
+Fdatabase db = Fdatabase();
+
 class MyAppState extends ChangeNotifier {
   bool _isNGO = false;
   User? _user;
-  String? _error;
+  bool _myevents = false;
 
   bool get isNGO => _isNGO;
   set isNGO(bool value) {
@@ -53,13 +59,13 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  User? get user => _user;
-
-  String? get error => _error;
-  set error(String? value) {
-    _error = value;
+  bool get myevents => _myevents;
+  set myevents(bool value) {
+    _myevents = value;
     notifyListeners();
   }
+
+  User? get user => _user;
 
   MyAppState() {
     _init();
@@ -77,6 +83,11 @@ class MyAppState extends ChangeNotifier {
       _user = user;
       notifyListeners();
     });
+    db = Fdatabase();
+  }
+
+  Future<UserCredential> signInAnonymously() async {
+    return FirebaseAuth.instance.signInAnonymously();
   }
 
   Future<UserCredential> signInWithGoogle() async {
@@ -106,24 +117,35 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => ChangeNotifierProvider(
         create: (context) => MyAppState(),
         child: MaterialApp(
-          home: Consumer<MyAppState>(
-            builder: (context, state, _) => state.error != null
-                ? Center(child: Text(state.error!))
-                : (state.user != null
-                    ? EventScreen()
-                    : Center(
-                        child: TextButton(
-                          child: Text('Sign in'),
-                          onPressed: () {
-                            try {
-                              Provider.of<MyAppState>(context, listen: false)
-                                  .signInWithGoogle();
-                            } on FirebaseAuthException catch (e) {
-                              state.error = e.code;
-                            }
-                          },
-                        ),
-                      )),
+          home: //LoginScreen()
+              Consumer<MyAppState>(
+            builder: (context, state, _) =>
+                state.user != null ? EventScreen() : LoginScreen(),
+          ),
+        ),
+      );
+}
+
+class LoginScreen extends StatelessWidget {
+  Widget build(BuildContext context) => Scaffold(
+        body: Center(
+          child: ElevatedButton(
+            child: Text('Sign in'),
+            onPressed: () {
+              //Ik moet gaan kijken hoe try catch blocks werken
+              try {
+                Provider.of<MyAppState>(context, listen: false)
+                    .signInWithGoogle();
+              } on FirebaseAuthException catch (e) {
+                showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                        title: Text('Login error'), content: Text(e.code)));
+              }
+              /*FirebaseAuth.instance.authStateChanges().listen((value) =>
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => EventScreen())));*/
+            },
           ),
         ),
       );
@@ -134,8 +156,11 @@ class EventScreen extends StatelessWidget {
     return Scaffold(
       drawer: EventScreenDrawer(),
       appBar: AppBar(
-        title: Text('Events'),
-      ),
+          title: Consumer<MyAppState>(
+              builder: (context, state, _) => Text(
+                    state.myevents ? 'My events!' : 'All events!',
+                    textScaleFactor: 1.5,
+                  ))),
       body: Column(
         children: [
           SizedBox(height: 20),
@@ -143,34 +168,19 @@ class EventScreen extends StatelessWidget {
             'Open events!',
             textScaleFactor: 1.5,
           ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance.collection('Events').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Text('Something went wrong');
-                }
-
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Text("Loading");
-                }
-
-                return ListView(
-                  children:
-                      snapshot.data!.docs.map((DocumentSnapshot document) {
-                    Map<String, dynamic> data =
-                        document.data()! as Map<String, dynamic>;
-                    return EventTile(data);
-                  }).toList(),
-                );
-              },
-            ),
+          // Expanded(child: LocList()),
+          // Expanded(child: LocTypeList()),
+          Expanded(child: EventList(db.getOpenEvents())),
+          // Expanded(child: RolesList()),
+          Divider(),
+          Text(
+            'Closed events!',
+            textScaleFactor: 1.5,
           ),
-          //Expanded(child: LocationsList()),
-          //Expanded(child: LoctypeList()),
-          //Expanded(child: RolesList()),
-          //Expanded(child: EventsList()),
+          Container(
+              width: double.infinity,
+              height: 80,
+              child: Expanded(child: ClosedEventList(db.getClosedEvents()))),
           Divider(),
           Row(
             children: [
@@ -239,6 +249,7 @@ class EventScreenDrawer extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              //Use popUntil LoginEcreen
               Provider.of<MyAppState>(context, listen: false).signOut();
             },
             child: ListTile(
@@ -248,25 +259,10 @@ class EventScreenDrawer extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              Provider.of<MyAppState>(context, listen: false).myevents = false;
             },
             child: ListTile(
-              title: Text('Open events'),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: ListTile(
-              title: Text('Closed events'),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: ListTile(
-              title: Text('Favorite events'),
+              title: Text('All events'),
             ),
           ),
           Consumer<MyAppState>(
@@ -275,6 +271,7 @@ class EventScreenDrawer extends StatelessWidget {
                   ? null
                   : () {
                       Navigator.pop(context);
+                      state.myevents = true;
                     },
               child: ListTile(
                 title: Text('My events'),
@@ -297,90 +294,92 @@ class EventScreenDrawer extends StatelessWidget {
   }
 }
 
-class EventTile extends StatefulWidget {
-  Map<String, dynamic> data;
-  EventTile(this.data);
-  @override
-  State<EventTile> createState() => _EventTileState();
-}
+class EventTile extends StatelessWidget {
+  final Event e;
+  final Widget imagewidget = Image.network(imagelink);
+  EventTile(this.e);
 
-class _EventTileState extends State<EventTile> {
-  bool checked = false;
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text('Latour'),
-      subtitle: Text('Date: ${widget.data['creationDate']}'),
-      leading: Checkbox(
-        value: checked,
-        onChanged: (val) {
-          setState(() {
-            checked = val!;
-          });
-        },
-      ),
-      trailing: TextButton(
-        child: Text('More'),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (BuildContext context) => EventDetail(
-                'Latour',
-                'Come join us Lions Club and clean up our neighborhood',
-                '22-3-2022',
-                20,
-                7,
-                'Cultuurtuinlaan 23',
-                '+5978855645',
-                false,
-              ),
-            ),
-          );
-        },
-      ),
+      title: TextButton(
+          onPressed: (() => Navigator.push(context,
+              MaterialPageRoute(builder: (context) => EventDetail(e)))),
+          child: Text('${e.name}')),
+      subtitle: Text('Date: ${e.orgDate}'),
+      leading: TextButton(
+          onPressed: (() => showDialog(
+              context: context,
+              builder: (context) => Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        imagewidget,
+                        ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('back'))
+                      ]))),
+          child: imagewidget),
     );
   }
 }
 
 class EventDetail extends StatelessWidget {
-  final String name;
-  final String short_message;
-  final String date;
-  final int max_attendees;
-  final int number_of_signups;
-  final String location;
-  final String phone_number;
-  final bool joined;
-  EventDetail(
-    this.name,
-    this.short_message,
-    this.date,
-    this.max_attendees,
-    this.number_of_signups,
-    this.location,
-    this.phone_number,
-    this.joined,
-  );
+  final Event e;
+  final int max_attendees = 20;
+  final String phone_number = '+5978855645';
+  final bool joined = false;
+
+  EventDetail(this.e);
 
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(name),
+        title: Text(e.name),
       ),
       body: Column(
         children: [
-          ListTile(title: Text('Short message: $short_message')),
-          ListTile(title: Text('Day organized: $date')),
-          ListTile(title: Text('Max number of attendees: $max_attendees')),
-          ListTile(
-              title: Text('Current number of sign ups: $number_of_signups')),
-          ListTile(title: Text('Location: $location')),
-          ListTile(
-            title: Text('Phone number lead: $phone_number'),
-            subtitle: Text('(will get send to the participants)'),
+          Expanded(
+            child: ListView(
+              children: [
+                Image.network(imagelink),
+                ListTile(title: Text('Short message: ${e.description}')),
+                ListTile(title: Text('Day organized: ${e.orgDate}')),
+                ListTile(
+                    title: Text('Max number of attendees: $max_attendees')),
+                ListTile(
+                    title: Text(
+                        'Current number of sign ups: ${e.participants.length}')),
+                FutureBuilder<DocumentSnapshot>(
+                  future: db.getLocByID(e.location.id),
+                  builder: (BuildContext context,
+                      AsyncSnapshot<DocumentSnapshot> snapshot) {
+                    if (snapshot.hasError) {
+                      return Text("Something went wrong");
+                    }
+
+                    if (snapshot.hasData && !snapshot.data!.exists) {
+                      print(e.location.id);
+                      return Text(
+                          "Document \"${e.location.id}\" does not exist");
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      Map<String, dynamic> data =
+                          snapshot.data!.data() as Map<String, dynamic>;
+                      return Text("Location: ${data['geo']}");
+                    }
+
+                    return LinearProgressIndicator();
+                  },
+                ),
+                ListTile(
+                  title: Text('Phone number lead: $phone_number'),
+                  subtitle: Text('(will get send to the participants)'),
+                ),
+              ],
+            ),
           ),
           Consumer<MyAppState>(
-            builder: (context, state, _) => TextButton(
+            builder: (context, state, _) => ElevatedButton(
               onPressed: () {},
               child: state.isNGO
                   ? Text('Wrap up')
@@ -401,6 +400,8 @@ class OrganizeScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
+          //Here should be your own picture
+          //Image.network(imagelink),
           TextButton(
             onPressed: () {},
             child: ListTile(
@@ -476,107 +477,201 @@ class StatisticsScreen extends StatelessWidget {
 
 // TODO README: https://firebase.flutter.dev/docs/firestore-odm/references
 // read ^ to see widgets, reading, querying
-class RolesList extends StatelessWidget {
+// class RolesList extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return FirestoreBuilder<RoleQuerySnapshot>(
+//         ref: roleRefs,
+//         builder: (context, AsyncSnapshot<RoleQuerySnapshot> snapshot,
+//             Widget? child) {
+//           if (snapshot.hasError) return Text('roles: Something went wrong!');
+//           if (!snapshot.hasData) return Text('Loading roles...');
+//
+//           // Access the QuerySnapshot
+//           RoleQuerySnapshot querySnapshot = snapshot.requireData;
+//           // print(querySnapshot.docs[0].data);  // DEBUG
+//
+//           return ListView.builder(
+//             itemCount: querySnapshot.docs.length,
+//             itemBuilder: (context, index) {
+//               // Access the User instance
+//               Role role = querySnapshot.docs[index].data;
+//               return Text('Role name: ${role.name}, members ${role.members}');
+//             },
+//           );
+//         });
+//   }
+// }
+//
+// class LocationsList extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return FirestoreBuilder<LocationQuerySnapshot>(
+//         ref: locRefs,
+//         builder: (context, AsyncSnapshot<LocationQuerySnapshot> snapshot,
+//             Widget? child) {
+//           if (snapshot.hasError){
+//             print(snapshot.error);
+//             return Text('locations: ${snapshot.error}');
+//           }
+//
+//           if (!snapshot.hasData) return Text('Loading locations...');
+//
+//           // Access the QuerySnapshot
+//           LocationQuerySnapshot querySnapshot = snapshot.requireData;
+//           print(querySnapshot.docs[0].data);
+//
+//           return ListView.builder(
+//             itemCount: querySnapshot.docs.length,
+//             itemBuilder: (context, index) {
+//               // Access the User instance
+//               Location loc = querySnapshot.docs[index].data;
+//               print("LOC = $loc");
+//               return Text('Location geo: ${loc.geo}, type:${loc.type} ');
+//             },
+//           );
+//         });
+//   }
+// }
+//
+// class LoctypeList extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return FirestoreBuilder<LocationTypeQuerySnapshot>(
+//         ref: LTRef,
+//         builder: (context, AsyncSnapshot<LocationTypeQuerySnapshot> snapshot,
+//             Widget? child) {
+//           if (snapshot.hasError){
+//             print(snapshot.error);
+//             return Text('locationtypes: Something went wrong!');
+//           }
+//
+//           if (!snapshot.hasData) return Text('Loading locationtypes...');
+//
+//           // Access the QuerySnapshot
+//           LocationTypeQuerySnapshot querySnapshot = snapshot.requireData;
+//           // print(querySnapshot.docs[0].data); // DEBUG
+//
+//           return ListView.builder(
+//             itemCount: querySnapshot.docs.length,
+//             itemBuilder: (context, index) {
+//               // Access the User instance
+//               LocationType ltype = querySnapshot.docs[index].data;
+//               return Text('LT name: ${ltype.name}');
+//             },
+//           );
+//         });
+//   }
+// }
+
+class LocTypeList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return FirestoreBuilder<RoleQuerySnapshot>(
-        ref: roleRefs,
-        builder: (context, AsyncSnapshot<RoleQuerySnapshot> snapshot,
-            Widget? child) {
-          if (snapshot.hasError) return Text('roles: Something went wrong!');
-          if (!snapshot.hasData) return Text('Loading roles...');
-
-          // Access the QuerySnapshot
-          RoleQuerySnapshot querySnapshot = snapshot.requireData;
-          print(querySnapshot.docs[0].data);
-
-          return ListView.builder(
-            itemCount: querySnapshot.docs.length,
-            itemBuilder: (context, index) {
-              // Access the User instance
-              Role role = querySnapshot.docs[index].data;
-              return Text('Role name: ${role.name}, members ${role.members}');
-            },
+    return StreamBuilder<QuerySnapshot>(
+        stream: db.getLTs(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Something went wrong');
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          var docs = snapshot.data?.docs;
+          return ListView(
+            padding: const EdgeInsets.only(top: 20.0),
+            // 2
+            children: docs!.map((data) => LocTypeItem(context, data)).toList(),
           );
         });
   }
 }
 
-class LocationsList extends StatelessWidget {
+Widget LocTypeItem(BuildContext context, DocumentSnapshot snapshot) {
+  // 4
+  final lt = LocationType.fromSnapshot(snapshot);
+  return ListTile(
+    title: Text(lt.name),
+    subtitle: Text(lt.id!),
+  );
+}
+
+class LocList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return FirestoreBuilder<LocationQuerySnapshot>(
-        ref: locRefs,
-        builder: (context, AsyncSnapshot<LocationQuerySnapshot> snapshot,
-            Widget? child) {
-          if (snapshot.hasError)
-            return Text('locations: Something went wrong!');
-          if (!snapshot.hasData) return Text('Loading locations...');
-
-          // Access the QuerySnapshot
-          LocationQuerySnapshot querySnapshot = snapshot.requireData;
-          print(querySnapshot.docs[0].data);
-
-          return ListView.builder(
-            itemCount: querySnapshot.docs.length,
-            itemBuilder: (context, index) {
-              // Access the User instance
-              Location loc = querySnapshot.docs[index].data;
-              return Text('Location geo: ${loc.loc}, type:${loc.type} ');
-            },
+    return StreamBuilder<QuerySnapshot>(
+        stream: db.getLocs(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Something went wrong');
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          var docs = snapshot.data?.docs;
+          return ListView(
+            padding: const EdgeInsets.only(top: 20.0),
+            // 2
+            children: docs!.map((data) => LocItem(context, data)).toList(),
           );
         });
   }
 }
 
-class LoctypeList extends StatelessWidget {
+Widget LocItem(BuildContext context, DocumentSnapshot snapshot) {
+  // 4
+  final loc = Location.fromSnapshot(snapshot);
+  return ListTile(
+      title:
+          Text("GEO: ${loc.geo.latitude}, ${loc.geo.longitude}, ID: ${loc.id}"),
+      subtitle: Text("LT: ${loc.type.path}"));
+}
+
+class EventList extends StatelessWidget {
+  final Stream<QuerySnapshot> stream;
+  EventList(this.stream);
+
   @override
   Widget build(BuildContext context) {
-    return FirestoreBuilder<LocationTypeQuerySnapshot>(
-        ref: LTRef,
-        builder: (context, AsyncSnapshot<LocationTypeQuerySnapshot> snapshot,
-            Widget? child) {
-          if (snapshot.hasError)
-            return Text('locationtypes: Something went wrong!');
-          if (!snapshot.hasData) return Text('Loading locationtypes...');
-
-          // Access the QuerySnapshot
-          LocationTypeQuerySnapshot querySnapshot = snapshot.requireData;
-          print(querySnapshot.docs[0].data);
-
-          return ListView.builder(
-            itemCount: querySnapshot.docs.length,
-            itemBuilder: (context, index) {
-              // Access the User instance
-              LocationType ltype = querySnapshot.docs[index].data;
-              return Text('LT name: ${ltype.name}');
-            },
+    return StreamBuilder<QuerySnapshot>(
+        stream: stream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Something went wrong');
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          var docs = snapshot.data?.docs;
+          return ListView(
+            children: docs!
+                .map((data) => EventTile(Event.fromSnapshot(data)))
+                .toList(),
           );
         });
   }
 }
 
-class EventsList extends StatelessWidget {
+class ClosedEventList extends StatelessWidget {
+  final Stream<QuerySnapshot> stream;
+  ClosedEventList(this.stream);
+
   @override
   Widget build(BuildContext context) {
-    return FirestoreBuilder<EventQuerySnapshot>(
-        ref: eventRefs,
-        builder: (context, AsyncSnapshot<EventQuerySnapshot> snapshot,
-            Widget? child) {
-          if (snapshot.hasError) return Text('events: Something went wrong!');
-          if (!snapshot.hasData) return Text('Loading events...');
-
-          // Access the QuerySnapshot
-          EventQuerySnapshot querySnapshot = snapshot.requireData;
-          print(querySnapshot.docs[0].data);
-
-          return ListView.builder(
-            itemCount: querySnapshot.docs.length,
-            itemBuilder: (context, index) {
-              // Access the User instance
-              Event event = querySnapshot.docs[index].data;
-              return Text('Event name: ${event.name}');
-            },
+    return StreamBuilder<QuerySnapshot>(
+        stream: stream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text('Something went wrong');
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          var docs = snapshot.data?.docs;
+          return PageView(
+            controller: PageController(),
+            children: docs!.map((data) {
+              return EventTile(Event.fromSnapshot(data));
+            }).toList(),
           );
         });
   }
