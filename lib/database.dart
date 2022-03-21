@@ -127,4 +127,20 @@ class Fdatabase {
     var after = e.afterPictures.map((e) => getImg(e)).toList();
     return {"before": before, "after": after};
   }
+
+  void uploadBeforeImgToEvent(Event event, Image image) {
+    var path = uploadImage(image, before: true);
+    path.then((value) {
+      event.beforePictures.add(value);
+      updateEvent(event);
+    });
+  }
+
+  void uploadAfterImgToEvent(Event event, Image image) {
+    var path = uploadImage(image, before: false);
+    path.then((value) {
+      event.afterPictures.add(value);
+      updateEvent(event);
+    });
+  }
 }
