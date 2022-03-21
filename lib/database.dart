@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:provider/provider.dart';
 import 'dart:io';
-
+import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart' as firebase_core;
 import 'package:firebase_storage/firebase_storage.dart' as store;
@@ -126,6 +126,7 @@ class Fdatabase {
           await store.FirebaseStorage.instance.ref(imagePath).getDownloadURL();
       return downloadURL;
     } catch (e) {
+      print("---------------error in getImageUrl--------------------------------------");
       print(e);
     }
     return await "";
@@ -138,6 +139,7 @@ class Fdatabase {
       var img = await store.FirebaseStorage.instance.ref(imagePath).getData();
       return Image.memory(img!);
     } catch (e) {
+      print("---------------error in getImage--------------------------------------");
       print(e);
       return await Image.memory(Uint8List(0));
     }
@@ -154,14 +156,14 @@ class Fdatabase {
   Future<String> uploadImage(File img, {bool before = true}) async {
     String folder = (before) ? "beforePictures/" : "afterPictures/";
     String filename = folder + _uuid.v4();
-    Uint8List imgData = img.readAsBytesSync();
     try {
       await store.FirebaseStorage.instance
-          .ref('uploads/file-to-upload.png')
-          .putData(imgData);
+          .ref(filename)
+          .putFile(img);
       return filename;
     } on firebase_core.FirebaseException catch (e) {
-      print("error");
+      print("---------------error in uploadImage--------------------------------------");
+      print(e);
       return await "";
     }
   }
