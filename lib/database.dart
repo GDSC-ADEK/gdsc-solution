@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart' as firebase_core;
@@ -108,13 +109,14 @@ class Fdatabase {
     }
   }
 
-  Future<String> uploadImage(Image im, {bool before = true}) async {
-    String folder = (before) ? "beforePictures/" : "afterPictures";
+  Future<String> uploadImage(File img, {bool before = true}) async {
+    String folder = (before) ? "beforePictures/" : "afterPictures/";
     String filename = folder + _uuid.v4();
+    Uint8List imgData = img.readAsBytesSync();
     try {
       await store.FirebaseStorage.instance
           .ref('uploads/file-to-upload.png')
-          .putBlob(im);
+          .putData(imgData);
       return filename;
     } on firebase_core.FirebaseException catch (e) {
       print("error");
@@ -122,13 +124,7 @@ class Fdatabase {
     }
   }
 
-  Map<String, List<Future<Image>>> getImgsFromEvent(Event e) {
-    var before = e.beforePictures.map((e) => getImg(e)).toList();
-    var after = e.afterPictures.map((e) => getImg(e)).toList();
-    return {"before": before, "after": after};
-  }
-
-  void uploadBeforeImgToEvent(Event event, Image image) {
+  void uploadBeforeImgToEvent(Event event, File image) {
     var path = uploadImage(image, before: true);
     path.then((value) {
       event.beforePictures.add(value);
@@ -136,11 +132,17 @@ class Fdatabase {
     });
   }
 
-  void uploadAfterImgToEvent(Event event, Image image) {
+  void uploadAfterImgToEvent(Event event, File image) {
     var path = uploadImage(image, before: false);
     path.then((value) {
       event.afterPictures.add(value);
       updateEvent(event);
     });
+  }
+
+  Map<String, List<Future<Image>>> getImgsFromEvent(Event e) {
+    var before = e.beforePictures.map((e) => getImg(e)).toList();
+    var after = e.afterPictures.map((e) => getImg(e)).toList();
+    return {"before": before, "after": after};
   }
 }

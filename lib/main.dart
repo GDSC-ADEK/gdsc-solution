@@ -32,9 +32,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'camera.dart';
 
-var imagelink =
-    "https://static.rondreis.nl/rondreis-storage-production/media-3686-conversions-paramaribo-xxl-webp/w670xh449/eyJidWNrZXQiOiJyb25kcmVpcy1zdG9yYWdlLXByb2R1Y3Rpb24iLCJrZXkiOiJtZWRpYVwvMzY4NlwvY29udmVyc2lvbnNcL3BhcmFtYXJpYm8teHhsLndlYnAiLCJlZGl0cyI6eyJyZXNpemUiOnsid2lkdGgiOjY3MCwiaGVpZ2h0Ijo0NDl9fX0=";
-
 void main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
@@ -84,6 +81,7 @@ class MyAppState extends ChangeNotifier {
       notifyListeners();
     });
     db = Fdatabase();
+    cameradb = db;
   }
 
   Future<UserCredential> signInAnonymously() async {
@@ -295,6 +293,31 @@ class EventScreenDrawer extends StatelessWidget {
   }
 }
 
+class EventPicture extends StatelessWidget {
+  final Event e;
+  EventPicture(this.e);
+
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: db.getImg(e.beforePictures[0]),
+        builder: (context, AsyncSnapshot<Image> snapshot) {
+          if (snapshot.hasError) {
+            return Text("Something went wrong");
+          }
+
+          if (snapshot.hasData && snapshot.data == null) {
+            return Text("Image does not exist");
+          }
+
+          if (snapshot.connectionState == ConnectionState.done) {
+            return snapshot.data!;
+          }
+
+          return CircularProgressIndicator();
+        });
+  }
+}
+
 class EventTile extends StatelessWidget {
   EventTile(this.e) {
     // 1 manier om images te halen,
@@ -316,7 +339,6 @@ class EventTile extends StatelessWidget {
         db.getImgsFromEvent(this.e);
   }
   final Event e;
-  Widget imagewidget = Image.network(imagelink);
   Widget build(BuildContext context) {
     var user = Provider.of<MyAppState>(context, listen: false)._user;
     print(user!.uid);
@@ -332,12 +354,12 @@ class EventTile extends StatelessWidget {
               builder: (context) => Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        imagewidget,
+                        EventPicture(e),
                         ElevatedButton(
                             onPressed: () => Navigator.pop(context),
                             child: Text('back'))
                       ]))),
-          child: imagewidget),
+          child: EventPicture(e)),
     );
   }
 }
@@ -360,7 +382,7 @@ class EventDetail extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                Image.network(imagelink),
+                Center(child: EventPicture(e)),
                 ListTile(title: Text('Short message: ${e.description}')),
                 ListTile(title: Text('Day organized: ${e.orgDate}')),
                 ListTile(
