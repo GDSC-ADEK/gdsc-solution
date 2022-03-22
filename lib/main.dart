@@ -29,6 +29,7 @@ import "models/locationtype.dart";
 import 'models/events.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'camera.dart';
 
@@ -337,26 +338,11 @@ class EventPicturePages extends StatelessWidget {
 
 class EventTile extends StatelessWidget {
   EventTile(this.e) {
-    // 1 manier om images te halen,
-    // call db.getImg on elements in afterpictures to get Future<Img>
-    Future<String> furl = db.getImgUrl("afterPictures/check.webp");
-    List<Future<String>> furls =
-        e.beforePictures.map((e) => db.getImgUrl(e)).toList();
-    var url = furl.then((value) => print(value));
-    // var img = Image.network(url);
-    //  2e manier, call db.getImgUrl to get Future<string>, which you then use
-    // on Image.network
-    // pass the value to Img.network to get Image
-    Future<Image> imgg = db.getImg("afterPictures/uncheck.png");
-    var imgg2 = db.getImg(e.beforePictures[0]);
 
-    //3e manier: call db.getImgsFromEvent(event)
-    // returnt {"before": List<Future<Img>>>, "after" : List<Future<Img>>>}
+
   }
   final Event e;
   Widget build(BuildContext context) {
-    var user = Provider.of<MyAppState>(context, listen: false)._user;
-    print(user!.uid);
     final pictureToDisplay =
         e.complete ? e.afterPictures[0] : e.beforePictures[0];
     return ListTile(
@@ -416,7 +402,6 @@ class EventDetail extends StatelessWidget {
                     }
 
                     if (snapshot.hasData && !snapshot.data!.exists) {
-                      print(e.location.id);
                       return Text(
                           "Document \"${e.location.id}\" does not exist");
                     }
