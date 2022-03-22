@@ -3,7 +3,7 @@ import 'package:camera/camera.dart';
 import 'dart:io';
 import 'database.dart';
 
-Fdatabase? cameradb;
+Fdatabase db = Fdatabase();
 
 var firstCamera;
 Future<void> initializefirstCamera() async {
@@ -120,7 +120,7 @@ class DisplayPictureScreen extends StatelessWidget {
       body: Image.file(File(imagePath)),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          cameradb?.uploadImage(File(imagePath));
+          db.uploadImage(File(imagePath));
         },
         child: const Icon(Icons.send),
       ),

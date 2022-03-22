@@ -80,8 +80,6 @@ class MyAppState extends ChangeNotifier {
       _user = user;
       notifyListeners();
     });
-    db = Fdatabase();
-    cameradb = db;
   }
 
   Future<UserCredential> signInAnonymously() async {
@@ -248,7 +246,7 @@ class EventScreenDrawer extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              //Use popUntil LoginEcreen
+              //Use popUntil LoginScreen
               Provider.of<MyAppState>(context, listen: false).signOut();
             },
             child: ListTile(
@@ -293,13 +291,13 @@ class EventScreenDrawer extends StatelessWidget {
   }
 }
 
-class EventPicture extends StatelessWidget {
-  final Event e;
-  EventPicture(this.e);
+class dbPicture extends StatelessWidget {
+  final String path;
+  dbPicture(this.path);
 
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: db.getImg(e.beforePictures[0]),
+        future: db.getImg(path),
         builder: (context, AsyncSnapshot<Image> snapshot) {
           if (snapshot.hasError) {
             return Text("Something went wrong");
@@ -315,6 +313,25 @@ class EventPicture extends StatelessWidget {
 
           return CircularProgressIndicator();
         });
+  }
+}
+
+class EventPicturePages extends StatelessWidget {
+  final Event e;
+  final bool before;
+  EventPicturePages(this.e, {this.before = true});
+
+  Widget build(BuildContext context) {
+    return dbPicture(e.beforePictures[0]);
+    /*
+    //PageView heeft een unbounded height problem in dit geval
+    final pictures = before ? e.beforePictures : e.afterPictures;
+    return Expanded(
+        child: PageView(
+      controller: PageController(),
+      children: [for (var path in pictures) dbPicture(path)],
+    ));
+    */
   }
 }
 
@@ -335,13 +352,13 @@ class EventTile extends StatelessWidget {
 
     //3e manier: call db.getImgsFromEvent(event)
     // returnt {"before": List<Future<Img>>>, "after" : List<Future<Img>>>}
-    Map<String, List<Future<Image>>> imagesFromEvent =
-        db.getImgsFromEvent(this.e);
   }
   final Event e;
   Widget build(BuildContext context) {
     var user = Provider.of<MyAppState>(context, listen: false)._user;
     print(user!.uid);
+    final pictureToDisplay =
+        e.complete ? e.afterPictures[0] : e.beforePictures[0];
     return ListTile(
       title: TextButton(
           onPressed: (() => Navigator.push(context,
@@ -354,12 +371,12 @@ class EventTile extends StatelessWidget {
               builder: (context) => Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        EventPicture(e),
+                        EventPicturePages(e, before: !e.complete),
                         ElevatedButton(
                             onPressed: () => Navigator.pop(context),
                             child: Text('back'))
                       ]))),
-          child: EventPicture(e)),
+          child: dbPicture(pictureToDisplay)),
     );
   }
 }
@@ -382,7 +399,7 @@ class EventDetail extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                Center(child: EventPicture(e)),
+                Center(child: EventPicturePages(e, before: !e.complete)),
                 ListTile(title: Text('Short message: ${e.description}')),
                 ListTile(title: Text('Day organized: ${e.orgDate}')),
                 ListTile(
