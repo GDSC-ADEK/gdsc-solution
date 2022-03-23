@@ -187,8 +187,7 @@ class EventScreen extends StatelessWidget {
             ),
           );
           retwidget.add(Container(
-              height: 80,
-              child: Expanded(child: ClosedEventList(db.getClosedEvents()))));
+              height: 80, child: ClosedEventList(db.getClosedEvents())));
 
           // Expanded(child: LocList()),
           // Expanded(child: LocTypeList()),
@@ -352,10 +351,7 @@ class EventPicturePages extends StatelessWidget {
 }
 
 class EventTile extends StatelessWidget {
-  EventTile(this.e) {
-
-
-  }
+  EventTile(this.e) {}
   final Event e;
   Widget build(BuildContext context) {
     final pictureToDisplay =
@@ -455,6 +451,7 @@ class EventDetail extends StatelessWidget {
 //https://api.flutter.dev/flutter/widgets/Form-class.html
 //https://api.flutter.dev/flutter/material/TextFormField-class.html
 //https://api.flutter.dev/flutter/widgets/FormField-class.html
+//https://docs.flutter.dev/cookbook/forms/validation
 class OrganizeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
@@ -467,8 +464,8 @@ class OrganizeScreen extends StatelessWidget {
             //https://pub.dev/packages/table_calendar
             TextFormField(
               decoration: const InputDecoration(
-                icon: Icon(Icons.calendar_view_day),
-                hintText: '22-3-2022?',
+                //icon: Icon(Icons.calendar_view_day),
+                //hintText: '22-3-2022',
                 labelText: 'Time and date',
               ),
               onSaved: (String? value) {
@@ -480,7 +477,70 @@ class OrganizeScreen extends StatelessWidget {
                     ? 'Do not use the @ char.'
                     : null;
               },
-            )
+            ),
+            TextFormField(
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                //icon: Icon(Icons.calendar_view_day),
+                //hintText: '22-3-2022',
+                labelText: 'max number of attendees',
+              ),
+              onSaved: (String? value) {
+                // This optional block of code can be used to run
+                // code when the user saves the form.
+              },
+              validator: (String? value) {
+                return (value != null && value.contains('@'))
+                    ? 'Do not use the @ char.'
+                    : null;
+              },
+            ),
+            Divider(),
+            TextButton(
+              onPressed: () {},
+              child: ListTile(
+                title: Text('Choose max number of attendees'),
+                trailing: Text('20'),
+              ),
+            ),
+            Divider(),
+            TextButton(
+              onPressed: () {},
+              child: ListTile(
+                title: Text('Choose location'),
+                trailing: Text('Cultuurtuinlaan 23'),
+              ),
+            ),
+            Divider(),
+            TextButton(
+              onPressed: () {},
+              child: ListTile(
+                title: Text('Write Message'),
+                subtitle: Text('Will be sent in email to participants'),
+              ),
+            ),
+            Divider(),
+            TextButton(
+              onPressed: () {},
+              child: ListTile(
+                title: Text('Phone number'),
+                trailing: Text('+5978855645'),
+              ),
+            ),
+            Divider(),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TakePictureScreen(),
+                ),
+              ),
+              child: ListTile(
+                title: Text('Photo'),
+                leading: const Icon(Icons.camera_alt),
+              ),
+            ),
+            Divider(),
           ],
         )));
   }
