@@ -29,6 +29,7 @@ class Fdatabase {
       FirebaseFirestore.instance.collection('Roles');
   final CollectionReference _events =
       FirebaseFirestore.instance.collection('Events');
+  Directory? _appDir = null;
 
   /// fetches all LocationType documents
   Stream<QuerySnapshot> getLTs() => _LocTypes.snapshots();
@@ -102,22 +103,6 @@ class Fdatabase {
     await _events.doc(e.id).delete();
   }
 
-  // /// gets all events which have been completed
-  // Stream<QuerySnapshot> getClosedEvents() =>
-  //     _events.where("complete", isEqualTo: true).snapshots();
-  //
-  // /// gets all events which are still incomplete
-  // Stream<QuerySnapshot> getOpenEvents() =>
-  //     _events.where("complete", isEqualTo: false).snapshots();
-
-  // /// gets all events which a user has joined
-  // Stream<QuerySnapshot> getJoinedEvents(String userid) =>
-  //     _events.where("participants", arrayContains: userid).snapshots();
-  //
-  // /// gets all events which a user has organized
-  // Stream<QuerySnapshot> getOrganizedEvents(String userid) =>
-  //     _events.where("organizers", arrayContains: userid).snapshots();
-
   /// filtering events by:
   /// completion status is [completed],
   /// published status is [published],
@@ -160,9 +145,18 @@ class Fdatabase {
   /// fetches image which can  be  inmediately used
   /// from the firestore path
   Future<Image> getImg(String imagePath) async {
+    if (_appDir == null){
+      _appDir = await getApplicationDocumentsDirectory();
+    }
+    File file = File(_appDir!.path+ "/" + imagePath);
+
+    if (file.existsSync()){
+      return Image.file(file);
+    }
+    file.create(recursive: true);
     try {
-      var img = await store.FirebaseStorage.instance.ref(imagePath).getData();
-      return Image.memory(img!);
+      var img = await store.FirebaseStorage.instance.ref(imagePath).writeToFile(file);
+      return Image.file(file);
     } catch (e) {
       print(
           "---------------error in getImage--------------------------------------");
