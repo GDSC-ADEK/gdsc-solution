@@ -466,6 +466,42 @@ class EventDetail extends StatelessWidget {
   }
 }
 
+//https://api.flutter.dev/flutter/material/TextField-class.html
+//https://api.flutter.dev/flutter/widgets/Form-class.html
+//https://api.flutter.dev/flutter/material/TextFormField-class.html
+//https://api.flutter.dev/flutter/widgets/FormField-class.html
+class OrganizeScreen extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text('Organize'),
+        ),
+        body: Form(
+            child: ListView(
+          children: [
+            //https://pub.dev/packages/table_calendar
+            TextFormField(
+              decoration: const InputDecoration(
+                icon: Icon(Icons.calendar_view_day),
+                hintText: '22-3-2022?',
+                labelText: 'Time and date',
+              ),
+              onSaved: (String? value) {
+                // This optional block of code can be used to run
+                // code when the user saves the form.
+              },
+              validator: (String? value) {
+                return (value != null && value.contains('@'))
+                    ? 'Do not use the @ char.'
+                    : null;
+              },
+            )
+          ],
+        )));
+  }
+}
+
+/*
 class OrganizeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
@@ -534,6 +570,7 @@ class OrganizeScreen extends StatelessWidget {
     );
   }
 }
+*/
 
 class StatisticsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
