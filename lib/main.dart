@@ -158,70 +158,86 @@ class EventScreen extends StatelessWidget {
                     state.myevents ? 'My events!' : 'All events!',
                     textScaleFactor: 1.5,
                   ))),
-      body: Column(
-        children: [
-          SizedBox(height: 20),
-          Text(
-            'Open events!',
+      body: Consumer<MyAppState>(builder: (context, state, _) {
+        final retwidget = <Widget>[];
+        retwidget.add(SizedBox(height: 20));
+        if (state.myevents) {
+          retwidget.add(Text(
+            state.isNGO ? 'Events by me' : 'Events I joined',
             textScaleFactor: 1.5,
-          ),
+          ));
+          retwidget.add(Expanded(
+              child: EventList(state.isNGO
+                  ? db.getOrganizedEvents(state.user!.uid)
+                  : db.getJoinedEvents(state.user!.uid))));
+        } else {
+          retwidget.add(
+            Text(
+              'Open events!',
+              textScaleFactor: 1.5,
+            ),
+          );
+          retwidget.add(Expanded(child: EventList(db.getOpenEvents())));
+          retwidget.add(Divider());
+          retwidget.add(
+            Text(
+              'Closed events!',
+              textScaleFactor: 1.5,
+            ),
+          );
+          retwidget.add(Container(
+              height: 80,
+              child: Expanded(child: ClosedEventList(db.getClosedEvents()))));
+
           // Expanded(child: LocList()),
           // Expanded(child: LocTypeList()),
-          Expanded(child: EventList(db.getOpenEvents())),
           // Expanded(child: RolesList()),
-          Divider(),
-          Text(
-            'Closed events!',
-            textScaleFactor: 1.5,
-          ),
-          Container(
-              width: double.infinity,
-              height: 80,
-              child: Expanded(child: ClosedEventList(db.getClosedEvents()))),
-          Divider(),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
+
+        }
+        retwidget.add(Divider());
+        retwidget.add(Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 60,
+                child: TextButton(
+                  child: Text('Statistics'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (BuildContext context) => StatisticsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: Consumer<MyAppState>(
+                builder: (context, state, _) => Container(
                   height: 60,
-                  child: TextButton(
-                    child: Text('Statistics'),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (BuildContext context) => StatisticsScreen(),
+                  child: !state.isNGO
+                      ? null
+                      : TextButton(
+                          child: Text('Organize'),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (BuildContext context) =>
+                                    OrganizeScreen(),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
               ),
-              Expanded(
-                child: Consumer<MyAppState>(
-                  builder: (context, state, _) => Container(
-                    height: 60,
-                    child: !state.isNGO
-                        ? null
-                        : TextButton(
-                            child: Text('Organize'),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (BuildContext context) =>
-                                      OrganizeScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          )
-        ],
-      ),
+            ),
+          ],
+        ));
+        return Column(children: retwidget);
+      }),
     );
   }
 }
@@ -322,16 +338,15 @@ class EventPicturePages extends StatelessWidget {
   EventPicturePages(this.e, {this.before = true});
 
   Widget build(BuildContext context) {
-    return dbPicture(e.beforePictures[0]);
-    /*
+    //return dbPicture(e.beforePictures[0]);
     //PageView heeft een unbounded height problem in dit geval
     final pictures = before ? e.beforePictures : e.afterPictures;
-    return Expanded(
+    return Container(
+        height: 300,
         child: PageView(
-      controller: PageController(),
-      children: [for (var path in pictures) dbPicture(path)],
-    ));
-    */
+          controller: PageController(),
+          children: [for (var path in pictures) dbPicture(path)],
+        ));
   }
 }
 
@@ -399,7 +414,7 @@ class EventDetail extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                Center(child: EventPicturePages(e, before: !e.complete)),
+                EventPicturePages(e, before: !e.complete),
                 ListTile(title: Text('Short message: ${e.description}')),
                 ListTile(title: Text('Day organized: ${e.orgDate}')),
                 ListTile(
@@ -613,11 +628,15 @@ class EventList extends StatelessWidget {
             return LinearProgressIndicator();
           }
           var docs = snapshot.data?.docs;
-          return ListView(
+          /*return ListView(
             children: docs!
                 .map((data) => EventTile(Event.fromSnapshot(data)))
                 .toList(),
-          );
+          );*/
+          return ListView.builder(
+              itemCount: docs!.length,
+              itemBuilder: (context, index) =>
+                  EventTile(Event.fromSnapshot(docs[index])));
         });
   }
 }
@@ -638,12 +657,16 @@ class ClosedEventList extends StatelessWidget {
             return LinearProgressIndicator();
           }
           var docs = snapshot.data?.docs;
-          return PageView(
+          return PageView.builder(
+              itemCount: docs!.length,
+              itemBuilder: (context, index) =>
+                  EventTile(Event.fromSnapshot(docs[index])));
+          /*return PageView(
             controller: PageController(),
             children: docs!.map((data) {
               return EventTile(Event.fromSnapshot(data));
             }).toList(),
-          );
+          );*/
         });
   }
 }
