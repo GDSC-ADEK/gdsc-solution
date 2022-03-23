@@ -169,8 +169,8 @@ class EventScreen extends StatelessWidget {
           ));
           retwidget.add(Expanded(
               child: EventList(state.isNGO
-                  ? db.getOrganizedEvents(state.user!.uid)
-                  : db.getJoinedEvents(state.user!.uid))));
+                  ? db.getEvents(organizer: state.user!.uid)
+                  : db.getEvents(participant: state.user!.uid))));
         } else {
           retwidget.add(
             Text(
@@ -178,7 +178,7 @@ class EventScreen extends StatelessWidget {
               textScaleFactor: 1.5,
             ),
           );
-          retwidget.add(Expanded(child: EventList(db.getOpenEvents())));
+          retwidget.add(Expanded(child: EventList(db.getEvents(completed: false, published: true))));
           retwidget.add(Divider());
           retwidget.add(
             Text(
@@ -188,7 +188,7 @@ class EventScreen extends StatelessWidget {
           );
           retwidget.add(Container(
               height: 80,
-              child: Expanded(child: ClosedEventList(db.getClosedEvents()))));
+              child: Expanded(child: ClosedEventList(db.getEvents(completed: true, published: true)))));
 
           // Expanded(child: LocList()),
           // Expanded(child: LocTypeList()),
@@ -353,7 +353,6 @@ class EventPicturePages extends StatelessWidget {
 
 class EventTile extends StatelessWidget {
   EventTile(this.e) {
-
 
   }
   final Event e;

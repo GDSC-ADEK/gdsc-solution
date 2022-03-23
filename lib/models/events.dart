@@ -97,3 +97,20 @@ Event eventFromSnapshot(DocumentSnapshot snapshot) {
   newEvent.id = snapshot.reference.id;
   return newEvent;
 }
+
+// var evs = [
+//   {
+// "name": "Cleanup Kwatta",
+// "description": "A description that's a bit long so you have to figure out how to handle it. It is very long, so I suspect you just need to remove the description completely from listviews. It might contain details such as the locations, what to wear, what to bring (for example, a rake, gloves, water), what will be provided (tools, water), the time to meet at, the location to gather, idk. I should probably just lorem ipsum this",
+// "complete": true,
+// "publish": true,
+// "creationDate": DateTime(2021,03, 23 ),
+// "orgDate":DateTime(2021,03, 23 ),
+// "organizers": ["dernz"],
+// "participants": ["sagar"],
+// "beforePictures": ["beforePictures/check.webp", "beforePictures/uncheck.png"],
+// "afterPictures": ["afterPictures/check.webp", "afterPictures/uncheck.png"],
+// "garbageCollected": 0,
+// "location": ""
+// }
+// ];

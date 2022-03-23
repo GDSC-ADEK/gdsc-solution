@@ -40,7 +40,7 @@ class Fdatabase {
   Stream<QuerySnapshot> getRoles() => _roles.snapshots();
 
   /// fetches all Event documents
-  Stream<QuerySnapshot> getEvents() => _events.snapshots();
+  // Stream<QuerySnapshot> getEvents() => _events.snapshots();
 
   /// Fetches LocationType by id
   Future<DocumentSnapshot> getLTByID(String id) {
@@ -102,21 +102,45 @@ class Fdatabase {
     await _events.doc(e.id).delete();
   }
 
-  /// gets all events which have been completed
-  Stream<QuerySnapshot> getClosedEvents() =>
-      _events.where("complete", isEqualTo: true).snapshots();
+  // /// gets all events which have been completed
+  // Stream<QuerySnapshot> getClosedEvents() =>
+  //     _events.where("complete", isEqualTo: true).snapshots();
+  //
+  // /// gets all events which are still incomplete
+  // Stream<QuerySnapshot> getOpenEvents() =>
+  //     _events.where("complete", isEqualTo: false).snapshots();
 
-  /// gets all events which are still incomplete
-  Stream<QuerySnapshot> getOpenEvents() =>
-      _events.where("complete", isEqualTo: false).snapshots();
+  // /// gets all events which a user has joined
+  // Stream<QuerySnapshot> getJoinedEvents(String userid) =>
+  //     _events.where("participants", arrayContains: userid).snapshots();
+  //
+  // /// gets all events which a user has organized
+  // Stream<QuerySnapshot> getOrganizedEvents(String userid) =>
+  //     _events.where("organizers", arrayContains: userid).snapshots();
 
-  /// gets all events which a user has joined
-  Stream<QuerySnapshot> getJoinedEvents(String userid) =>
-      _events.where("participants", arrayContains: userid).snapshots();
+  /// filtering events by:
+  /// completion status is [completed],
+  /// published status is [published],
+  /// organizers contains [organizer] ,
+  /// participants contain [participant]
+  /// and then fetching them
+  Stream<QuerySnapshot> getEvents({bool? completed, bool? published, String? organizer, String? participant}){
+    Query<Object?> query = _events.where("creationDate", isLessThan: DateTime(2100, 12, 1));
+    if ( completed != null){
+      query = query.where("complete", isEqualTo: completed);
+    }
+    if ( published != null){
+      query = query.where("publish", isEqualTo: published);
+    }
+    if ( organizer != null){
+      query = query.where("organizers", arrayContains: organizer);
+    }
+    if ( participant != null){
+      query = query.where("participants", arrayContains: participant);
+    }
+    return query.snapshots();
+  }
 
-  /// gets all events which a user has organized
-  Stream<QuerySnapshot> getOrganizedEvents(String userid) =>
-      _events.where("organizers", arrayContains: userid).snapshots();
 
   /// retrieves an url which can be used to download the image
   /// from the firestore path
