@@ -16,9 +16,9 @@ Future<void> initializefirstCamera() async {
 
 // A screen that allows users to take a picture using a given camera.
 class TakePictureScreen extends StatefulWidget {
-  const TakePictureScreen({
-    Key? key,
-  }) : super(key: key);
+  final Function(String path) cameraCallback;
+  const TakePictureScreen({Key? key, required this.cameraCallback})
+      : super(key: key);
 
   @override
   TakePictureScreenState createState() => TakePictureScreenState();
@@ -90,6 +90,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
                   // Pass the automatically generated path to
                   // the DisplayPictureScreen widget.
                   imagePath: image.path,
+                  cameraCallback: widget.cameraCallback,
                 ),
               ),
             );
@@ -107,8 +108,10 @@ class TakePictureScreenState extends State<TakePictureScreen> {
 // A widget that displays the picture taken by the user.
 class DisplayPictureScreen extends StatelessWidget {
   final String imagePath;
+  final Function(String path) cameraCallback;
 
-  const DisplayPictureScreen({Key? key, required this.imagePath})
+  const DisplayPictureScreen(
+      {Key? key, required this.imagePath, required this.cameraCallback})
       : super(key: key);
 
   @override
@@ -120,9 +123,10 @@ class DisplayPictureScreen extends StatelessWidget {
       body: Image.file(File(imagePath)),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          db.uploadImage(File(imagePath));
+          cameraCallback(imagePath);
+          Navigator.pop(context);
         },
-        child: const Icon(Icons.send),
+        child: const Icon(Icons.check),
       ),
     );
   }

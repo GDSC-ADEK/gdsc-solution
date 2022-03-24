@@ -456,170 +456,192 @@ class EventDetail extends StatelessWidget {
 //https://api.flutter.dev/flutter/material/TextFormField-class.html
 //https://api.flutter.dev/flutter/widgets/FormField-class.html
 //https://docs.flutter.dev/cookbook/forms/validation
-class OrganizeScreen extends StatelessWidget {
+class OrganizeScreen extends StatefulWidget {
+  @override
+  State<OrganizeScreen> createState() => _OrganizeScreenState();
+}
+
+class _OrganizeScreenState extends State<OrganizeScreen> {
+  String? name;
+  String? description;
+  DateTime? orgDate;
+  final List<String> beforePictures = [];
+  final List<String> picturesToUpload = [];
+  DocumentReference<Object?>? location;
+  final _formKey = GlobalKey<FormState>();
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
           title: Text('Organize'),
         ),
         body: Form(
-            child: ListView(
-          children: [
-            //https://pub.dev/packages/table_calendar
-            TextFormField(
-              decoration: const InputDecoration(
-                //icon: Icon(Icons.calendar_view_day),
-                //hintText: '22-3-2022',
-                labelText: 'Time and date',
-              ),
-              onSaved: (String? value) {
-                // This optional block of code can be used to run
-                // code when the user saves the form.
-              },
-              validator: (String? value) {
-                return (value != null && value.contains('@'))
-                    ? 'Do not use the @ char.'
-                    : null;
-              },
-            ),
-            TextFormField(
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                //icon: Icon(Icons.calendar_view_day),
-                //hintText: '22-3-2022',
-                labelText: 'max number of attendees',
-              ),
-              onSaved: (String? value) {
-                // This optional block of code can be used to run
-                // code when the user saves the form.
-              },
-              validator: (String? value) {
-                return (value != null && value.contains('@'))
-                    ? 'Do not use the @ char.'
-                    : null;
-              },
-            ),
-            Divider(),
-            TextButton(
-              onPressed: () {},
-              child: ListTile(
-                title: Text('Choose max number of attendees'),
-                trailing: Text('20'),
-              ),
-            ),
-            Divider(),
-            TextButton(
-              onPressed: () {},
-              child: ListTile(
-                title: Text('Choose location'),
-                trailing: Text('Cultuurtuinlaan 23'),
-              ),
-            ),
-            Divider(),
-            TextButton(
-              onPressed: () {},
-              child: ListTile(
-                title: Text('Write Message'),
-                subtitle: Text('Will be sent in email to participants'),
-              ),
-            ),
-            Divider(),
-            TextButton(
-              onPressed: () {},
-              child: ListTile(
-                title: Text('Phone number'),
-                trailing: Text('+5978855645'),
-              ),
-            ),
-            Divider(),
-            TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TakePictureScreen(),
+            key: _formKey,
+            child: Column(children: [
+              Expanded(
+                child: ListView(
+                  children: [
+                    TextButton(
+                      onPressed: () async {
+                        var date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate:
+                                DateTime(DateTime.now().year + 10, 12, 31));
+                        var time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay(hour: 0, minute: 0));
+                        setState((() {
+                          orgDate = DateTime(date!.year, date.month, date.day,
+                              time!.hour, time.minute);
+                        }));
+                      },
+                      child: ListTile(
+                        title: Text('Time and date'),
+                        trailing:
+                            Text(orgDate != null ? orgDate.toString() : ''),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {},
+                      child: ListTile(
+                        title: Text('Choose location'),
+                        trailing: Text('Cultuurtuinlaan 23'),
+                      ),
+                    ),
+                    Divider(),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Name of event',
+                      ),
+                      onSaved: (String? value) {
+                        name = value;
+                      },
+                      validator: (String? value) {
+                        return (value == null || value.isEmpty)
+                            ? 'Event must have a name.'
+                            : null;
+                      },
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                      ),
+                      onSaved: (String? value) {
+                        description = value;
+                      },
+                      validator: (String? value) {
+                        return (value == null || value.isEmpty)
+                            ? 'Event must have a description.'
+                            : null;
+                      },
+                    ),
+                    /*
+                TextFormField(
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Max number of attendees',
+                  ),
+                  onSaved: (String? value) {
+                    // This optional block of code can be used to run
+                    // code when the user saves the form.
+                  },
+                  validator: (String? value) {
+                    return (value != null && value.contains('@'))
+                        ? 'Do not use the @ char.'
+                        : null;
+                  },
+                ),
+                //https://pub.dev/packages/phone_number
+                TextFormField(
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone number',
+                  ),
+                  onSaved: (String? value) {
+                    // This optional block of code can be used to run
+                    // code when the user saves the form.
+                  },
+                  validator: (String? value) {
+                    return (value != null && value.contains('@'))
+                        ? 'Do not use the @ char.'
+                        : null;
+                  },
+                ),
+                */
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TakePictureScreen(
+                              cameraCallback: (path) =>
+                                  setState(() => beforePictures.add(path))),
+                        ),
+                      ),
+                      child: ListTile(
+                        title: Text('Photo'),
+                        leading: const Icon(Icons.camera_alt),
+                      ),
+                    ),
+                    Divider(),
+                    Container(
+                        height: 200,
+                        child: PageView.builder(
+                            itemCount: beforePictures.length,
+                            itemBuilder: (context, index) =>
+                                Image.file(File(beforePictures[index])))),
+                  ],
                 ),
               ),
-              child: ListTile(
-                title: Text('Photo'),
-                leading: const Icon(Icons.camera_alt),
-              ),
-            ),
-            Divider(),
-          ],
-        )));
-  }
-}
+              ElevatedButton(
+                  onPressed: () async {
+                    // Validate returns true if the form is valid, or false otherwise.
+                    print('sending');
+                    if (_formKey.currentState!.validate()) {
+                      if (beforePictures.length < 1) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('A photo is necessary')),
+                        );
+                        return;
+                      }
+                      if (orgDate == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Specify the time and date')),
+                        );
+                        return;
+                      }
+                      _formKey.currentState!.save();
 
-/*
-class OrganizeScreen extends StatelessWidget {
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Organize'),
-      ),
-      body: ListView(
-        children: [
-          //Here should be your own picture
-          //Image.network(imagelink),
-          TextButton(
-            onPressed: () {},
-            child: ListTile(
-              title: Text('Choose time and date'),
-              trailing: Text('22-3-2022'),
-            ),
-          ),
-          Divider(),
-          TextButton(
-            onPressed: () {},
-            child: ListTile(
-              title: Text('Choose max number of attendees'),
-              trailing: Text('20'),
-            ),
-          ),
-          Divider(),
-          TextButton(
-            onPressed: () {},
-            child: ListTile(
-              title: Text('Choose location'),
-              trailing: Text('Cultuurtuinlaan 23'),
-            ),
-          ),
-          Divider(),
-          TextButton(
-            onPressed: () {},
-            child: ListTile(
-              title: Text('Write Message'),
-              subtitle: Text('Will be sent in email to participants'),
-            ),
-          ),
-          Divider(),
-          TextButton(
-            onPressed: () {},
-            child: ListTile(
-              title: Text('Phone number'),
-              trailing: Text('+5978855645'),
-            ),
-          ),
-          Divider(),
-          TextButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TakePictureScreen(),
-              ),
-            ),
-            child: ListTile(
-              title: Text('Photo'),
-              leading: const Icon(Icons.camera_alt),
-            ),
-          ),
-          Divider(),
-        ],
-      ),
-    );
+                      //tempory location randomly taken from the database
+                      location = FirebaseFirestore.instance
+                          .collection('Locations')
+                          .doc();
+
+                      for (var imagePath in beforePictures) {
+                        picturesToUpload
+                            .add(await db.uploadImage(File(imagePath)));
+                      }
+                      Event e = Event(
+                          name!,
+                          'TEST UPLOAD FROM APP: ' + description!,
+                          false,
+                          true,
+                          DateTime.now(),
+                          orgDate!,
+                          [],
+                          [],
+                          picturesToUpload,
+                          [],
+                          0,
+                          location!);
+                      db.addEvent(e);
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Text('Send')),
+            ])));
   }
 }
-*/
 
 class StatisticsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
