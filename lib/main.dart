@@ -382,11 +382,53 @@ class EventTile extends StatelessWidget {
   }
 }
 
+class EventPanelList extends StatefulWidget {
+  final Event e;
+  EventPanelList(this.e);
+  @override
+  State<EventPanelList> createState() => _EventPanelListState();
+}
+
+class _EventPanelListState extends State<EventPanelList> {
+  bool isExpanded = false;
+  Widget build(BuildContext context) {
+    return ExpansionPanelList(
+      expansionCallback: (panelIndex, isExpanded) => setState(() {
+        this.isExpanded = !isExpanded;
+      }),
+      children: [
+        ExpansionPanel(
+            headerBuilder: (context, isExpanded) =>
+                ListTile(title: Text('Description')),
+            body: ListTile(title: Text(widget.e.description)),
+            isExpanded: isExpanded)
+      ],
+    );
+  }
+}
+
+class EventJoinButton extends StatefulWidget {
+  @override
+  State<EventJoinButton> createState() => _EventJoinButtonState();
+}
+
+class _EventJoinButtonState extends State<EventJoinButton> {
+  bool joined = false;
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () => setState(() {
+        joined = !joined;
+      }),
+      child: joined ? Text('Unjoin') : Text('join'),
+    );
+  }
+}
+
+//EventDetail has to be updated when you join a event
 class EventDetail extends StatelessWidget {
   final Event e;
   final int max_attendees = 20;
   final String phone_number = '+5978855645';
-  final bool joined = false;
 
   EventDetail(this.e);
 
@@ -401,7 +443,7 @@ class EventDetail extends StatelessWidget {
             child: ListView(
               children: [
                 EventPicturePages(e, before: !e.complete),
-                ListTile(title: Text('Short message: ${e.description}')),
+                EventPanelList(e),
                 ListTile(title: Text('Day organized: ${e.orgDate}')),
                 ListTile(
                     title: Text('Max number of attendees: $max_attendees')),
@@ -437,14 +479,14 @@ class EventDetail extends StatelessWidget {
               ],
             ),
           ),
-          Consumer<MyAppState>(
-            builder: (context, state, _) => ElevatedButton(
-              onPressed: () {},
-              child: state.isNGO
-                  ? Text('Wrap up')
-                  : (joined ? Text('Unjoin') : Text('Join')),
-            ),
-          ),
+          Consumer<MyAppState>(builder: (context, state, _) {
+            if (state.isNGO)
+              return ElevatedButton(
+                onPressed: () {},
+                child: Text('Wrap up'),
+              );
+            return EventJoinButton();
+          }),
         ],
       ),
     );
