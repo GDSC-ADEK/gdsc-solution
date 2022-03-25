@@ -45,6 +45,7 @@ void main() async {
 }
 
 Fdatabase db = Fdatabase();
+String? userID;
 
 class MyAppState extends ChangeNotifier {
   bool _isNGO = false;
@@ -79,6 +80,7 @@ class MyAppState extends ChangeNotifier {
     //await FirebaseAuth.instance.signInAnonymously();
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _user = user;
+      if (user != null) userID = user.uid;
       notifyListeners();
     });
   }
@@ -266,7 +268,7 @@ class EventScreenDrawer extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              //Use popUntil LoginScreen
+              //TODO Use popUntil LoginScreen
               Provider.of<MyAppState>(context, listen: false).signOut();
             },
             child: ListTile(
@@ -354,6 +356,7 @@ class EventPicturePages extends StatelessWidget {
   }
 }
 
+//TODO Display whether you've joined an event
 class EventTile extends StatelessWidget {
   EventTile(this.e);
   final Event e;
@@ -407,89 +410,112 @@ class _EventPanelListState extends State<EventPanelList> {
   }
 }
 
-class EventJoinButton extends StatefulWidget {
-  @override
-  State<EventJoinButton> createState() => _EventJoinButtonState();
-}
-
-class _EventJoinButtonState extends State<EventJoinButton> {
-  bool joined = false;
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () => setState(() {
-        joined = !joined;
-      }),
-      child: joined ? Text('Unjoin') : Text('join'),
-    );
-  }
-}
-
-//EventDetail has to be updated when you join a event
-class EventDetail extends StatelessWidget {
+class EventDetail extends StatefulWidget {
   final Event e;
-  final int max_attendees = 20;
-  final String phone_number = '+5978855645';
 
   EventDetail(this.e);
 
+  @override
+  State<EventDetail> createState() => _EventDetailState();
+}
+
+class _EventDetailState extends State<EventDetail> {
+  final int max_attendees = 20;
+
+  final String phone_number = '+5978855645';
+
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(e.name),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
+    //Event e = Event.fromSnapshot(await db.getEventByID(widget.e.id));
+    return StreamBuilder(
+        stream: db.getEventByID(this.widget.e.id!),
+        builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+          if (snapshot.hasError) {
+            return Text("Something went wrong");
+          }
+
+          if (snapshot.hasData && !snapshot.data!.exists) {
+            return Text("Event ${this.widget.e.id} does not exist");
+          }
+
+          if (snapshot.connectionState != ConnectionState.done) {
+            return LinearProgressIndicator();
+          }
+
+          var e = Event.fromSnapshot(snapshot.data!);
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(e.name),
+            ),
+            body: Column(
               children: [
-                EventPicturePages(e, before: !e.complete),
-                EventPanelList(e),
-                ListTile(title: Text('Day organized: ${e.orgDate}')),
-                ListTile(
-                    title: Text('Max number of attendees: $max_attendees')),
-                ListTile(
-                    title: Text(
-                        'Current number of sign ups: ${e.participants.length}')),
-                FutureBuilder<DocumentSnapshot>(
-                  future: db.getLocByID(e.location.id),
-                  builder: (BuildContext context,
-                      AsyncSnapshot<DocumentSnapshot> snapshot) {
-                    if (snapshot.hasError) {
-                      return Text("Something went wrong");
-                    }
+                Expanded(
+                  child: ListView(
+                    children: [
+                      EventPicturePages(e, before: !e.complete),
+                      EventPanelList(e),
+                      ListTile(title: Text('Day organized: ${e.orgDate}')),
+                      ListTile(
+                          title:
+                              Text('Max number of attendees: $max_attendees')),
+                      ListTile(
+                          title: Text(
+                              'Current number of sign ups: ${e.participants.length}')),
+                      FutureBuilder<DocumentSnapshot>(
+                        future: db.getLocByID(e.location.id),
+                        builder: (BuildContext context,
+                            AsyncSnapshot<DocumentSnapshot> snapshot) {
+                          if (snapshot.hasError) {
+                            return Text("Something went wrong");
+                          }
 
-                    if (snapshot.hasData && !snapshot.data!.exists) {
-                      return Text(
-                          "Document \"${e.location.id}\" does not exist");
-                    }
+                          if (snapshot.hasData && !snapshot.data!.exists) {
+                            return Text(
+                                "Document \"${e.location.id}\" does not exist");
+                          }
 
-                    if (snapshot.connectionState == ConnectionState.done) {
-                      Map<String, dynamic> data =
-                          snapshot.data!.data() as Map<String, dynamic>;
-                      return Text("Location: ${data['geo']}");
-                    }
+                          if (snapshot.connectionState ==
+                              ConnectionState.done) {
+                            Map<String, dynamic> data =
+                                snapshot.data!.data() as Map<String, dynamic>;
+                            return Text("Location: ${data['geo']}");
+                          }
 
-                    return LinearProgressIndicator();
-                  },
+                          return LinearProgressIndicator();
+                        },
+                      ),
+                      ListTile(
+                        title: Text('Phone number lead: $phone_number'),
+                        subtitle: Text('(will get send to the participants)'),
+                      ),
+                    ],
+                  ),
                 ),
-                ListTile(
-                  title: Text('Phone number lead: $phone_number'),
-                  subtitle: Text('(will get send to the participants)'),
-                ),
+                Consumer<MyAppState>(builder: (context, state, _) {
+                  if (state.isNGO)
+                    return ElevatedButton(
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => WrapUpScreen(e))),
+                      child: Text('Wrap up'),
+                    );
+                  bool joined = e.participants.contains(userID);
+                  return ElevatedButton(
+                    onPressed: () {
+                      if (joined)
+                        e.participants.remove(userID);
+                      else
+                        e.participants.add(userID!);
+                      db.updateEvent(e);
+                      setState(() {});
+                    },
+                    child: joined ? Text('Unjoin') : Text('join'),
+                  );
+                }),
               ],
             ),
-          ),
-          Consumer<MyAppState>(builder: (context, state, _) {
-            if (state.isNGO)
-              return ElevatedButton(
-                onPressed: () {},
-                child: Text('Wrap up'),
-              );
-            return EventJoinButton();
-          }),
-        ],
-      ),
-    );
+          );
+        });
   }
 }
 
@@ -692,6 +718,23 @@ class StatisticsScreen extends StatelessWidget {
       body: Center(
         child: Text(
           'Statistics',
+          textScaleFactor: 4,
+        ),
+      ),
+    );
+  }
+}
+
+//TODO Finish WrapUpScreen
+class WrapUpScreen extends StatelessWidget {
+  Event e;
+  WrapUpScreen(this.e);
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Wrap up')),
+      body: Center(
+        child: Text(
+          'Wrap up',
           textScaleFactor: 4,
         ),
       ),

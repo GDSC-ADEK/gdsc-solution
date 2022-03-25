@@ -53,9 +53,8 @@ class Fdatabase {
     return _locs.doc(id.trim()).get();
   }
 
-  /// Fetches Event by id
-  Future<DocumentSnapshot> getEventByID(String id) {
-    return _events.doc(id.trim()).get();
+  Stream<DocumentSnapshot> getEventByID(String id) {
+    return _events.doc(id.trim()).get().asStream();
   }
 
   /// adds LocationType to database
@@ -109,23 +108,27 @@ class Fdatabase {
   /// organizers contains [organizer] ,
   /// participants contain [participant]
   /// and then fetching them
-  Stream<QuerySnapshot> getEvents({bool? completed, bool? published, String? organizer, String? participant}){
-    Query<Object?> query = _events.where("creationDate", isLessThan: DateTime(2100, 12, 1));
-    if ( completed != null){
+  Stream<QuerySnapshot> getEvents(
+      {bool? completed,
+      bool? published,
+      String? organizer,
+      String? participant}) {
+    Query<Object?> query =
+        _events.where("creationDate", isLessThan: DateTime(2100, 12, 1));
+    if (completed != null) {
       query = query.where("complete", isEqualTo: completed);
     }
-    if ( published != null){
+    if (published != null) {
       query = query.where("publish", isEqualTo: published);
     }
-    if ( organizer != null){
+    if (organizer != null) {
       query = query.where("organizers", arrayContains: organizer);
     }
-    if ( participant != null){
+    if (participant != null) {
       query = query.where("participants", arrayContains: participant);
     }
     return query.snapshots();
   }
-
 
   /// retrieves an url which can be used to download the image
   /// from the firestore path
@@ -145,17 +148,18 @@ class Fdatabase {
   /// fetches image which can  be  inmediately used
   /// from the firestore path
   Future<Image> getImg(String imagePath) async {
-    if (_appDir == null){
+    if (_appDir == null) {
       _appDir = await getApplicationDocumentsDirectory();
     }
-    File file = File(_appDir!.path+ "/" + imagePath);
+    File file = File(_appDir!.path + "/" + imagePath);
 
-    if (file.existsSync()){
+    if (file.existsSync()) {
       return Image.file(file);
     }
     file.create(recursive: true);
     try {
-      var img = await store.FirebaseStorage.instance.ref(imagePath).writeToFile(file);
+      var img =
+          await store.FirebaseStorage.instance.ref(imagePath).writeToFile(file);
       return Image.file(file);
     } catch (e) {
       print(
