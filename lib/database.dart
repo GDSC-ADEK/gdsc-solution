@@ -53,12 +53,30 @@ class Fdatabase {
     return _locs.doc(id.trim()).get();
   }
 
-  Stream<DocumentSnapshot> getEventByID(String id) {
-    return _events.doc(id.trim()).get().asStream();
+  Future<DocumentSnapshot> getEventByID(String id) {
+    return _events.doc(id.trim()).get();
   }
 
   Future<DocumentSnapshot> getRoleByID(String id) {
     return _roles.doc(id.trim()).get();
+  }
+
+  /// Fetches LocationType by id
+  Stream<DocumentSnapshot> snapshotsLTByID(String id) {
+    return _LocTypes.doc(id.trim()).snapshots();
+  }
+
+  /// Fetches Location by id
+  Stream<DocumentSnapshot> snapshotsLocByID(String id) {
+    return _locs.doc(id.trim()).snapshots();
+  }
+
+  Stream<DocumentSnapshot> snapshotsEventByID(String id) {
+    return _events.doc(id.trim()).snapshots();
+  }
+
+  Stream<DocumentSnapshot> snapshotsRoleByID(String id) {
+    return _roles.doc(id.trim()).snapshots();
   }
 
   /// adds LocationType to database

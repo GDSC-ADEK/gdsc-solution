@@ -50,18 +50,18 @@ Fdatabase db = Fdatabase();
 String? userID;
 
 class MyAppState extends ChangeNotifier {
-  bool _isNGO = false;
   bool _myevents = false;
-
-  bool get isNGO => _isNGO;
-  set isNGO(bool value) {
-    _isNGO = value;
-    notifyListeners();
-  }
+  bool _RequestNGO = false;
 
   bool get myevents => _myevents;
   set myevents(bool value) {
     _myevents = value;
+    notifyListeners();
+  }
+
+  bool get RequestNGO => _RequestNGO;
+  set RequestNGO(bool value) {
+    _RequestNGO = value;
     notifyListeners();
   }
 
@@ -88,6 +88,7 @@ class MyAppState extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    await GoogleSignIn().disconnect();
     await FirebaseAuth.instance.signOut();
   }
 }
@@ -122,37 +123,36 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool RequestNGO = false;
-  Widget build(BuildContext context) => StreamBuilder(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, AsyncSnapshot<User?> snapshot) {
-          if (snapshot.hasError) {
-            return Text("Error in authentication");
-          }
+  Widget build(BuildContext context) => Consumer<MyAppState>(
+        builder: (context, state, _) => StreamBuilder(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, AsyncSnapshot<User?> snapshot) {
+            if (snapshot.hasError) {
+              return Text("Error in authentication");
+            }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return LinearProgressIndicator();
-          }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return LinearProgressIndicator();
+            }
 
-          var user = snapshot.data;
-          if (user != null) {
-            userID = user.uid;
-            return FutureBuilder<DocumentSnapshot>(
-              future: db.getRoleByID('organizer'),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) return Text('Error loading roles');
-                if (snapshot.connectionState == ConnectionState.waiting)
-                  return LinearProgressIndicator();
-                if (!snapshot.hasData || snapshot.data == null)
-                  return Text('Role snapshot has no data');
-                print(snapshot.data!.toString());
-                final r = Role.fromSnapshot(snapshot.data!);
-                if (RequestNGO) {
-                  if (r.members.contains(userID)) {
-                    //TODO remove later
-                    Provider.of<MyAppState>(context, listen: false)._isNGO =
-                        true;
-                    return EventScreen(); //isNGO must be set somehow
-                  } else {
+            var user = snapshot.data;
+            if (user != null) {
+              db.snapshotsRoleByID('organizer').listen((event) {
+                var value = Role.fromSnapshot(event).members.contains(user.uid);
+                if (state.RequestNGO != value) state.RequestNGO = value;
+              });
+              userID = user.uid;
+              return FutureBuilder<DocumentSnapshot>(
+                future: db.getRoleByID('organizer'),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) return Text('Error loading roles');
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    return LinearProgressIndicator();
+                  if (!snapshot.hasData || snapshot.data == null)
+                    return Text('Role snapshot has no data');
+                  print(snapshot.data!.toString());
+                  final r = Role.fromSnapshot(snapshot.data!);
+                  if (RequestNGO && !r.members.contains(userID)) {
                     String? encodeQueryParameters(Map<String, String> params) {
                       return params.entries
                           .map((e) =>
@@ -164,72 +164,70 @@ class _LoginScreenState extends State<LoginScreen> {
                       scheme: 'mailto',
                       path: 'uvsgdsc@gmail.com',
                       query: encodeQueryParameters(<String, String>{
-                        'subject': 'Request NGO account',
+                        'subject': 'Request NGO status',
                         'body':
-                            'Hello, I am ${user.displayName} and I would like to request an NGO account.\nUSER ID: ${user.uid}'
+                            'Hello, I am ${user.displayName} and I would like to request NGO status.\nUSER ID: ${user.uid}'
                       }),
                     );
 
                     launch(emailLaunchUri.toString());
                     return EventScreen();
                   }
-                }
-                return EventScreen();
-              },
-            );
-          }
+                  return EventScreen();
+                },
+              );
+            }
 
-          return Scaffold(
-            appBar: AppBar(title: Text('Login')),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    child: Text('Sign in as participant'),
-                    onPressed: () async {
-                      //Ik moet gaan kijken hoe try catch blocks werken
-                      //TODO try and catch werken niet met Future zonder await gerbuik in de plaats callbacks
-                      try {
-                        await Provider.of<MyAppState>(context, listen: false)
-                            // .signInWithGoogle();
-                            .signInAnonymously();
-                      } on FirebaseAuthException catch (e) {
-                        showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                                title: Text('Login error'),
-                                content: Text(e.code)));
-                      }
-                      setState(() {
-                        RequestNGO = false;
-                      });
-                    },
-                  ),
-                  ElevatedButton(
-                    child: Text('Sign in as NGO'),
-                    onPressed: () async {
-                      try {
-                        await Provider.of<MyAppState>(context, listen: false)
-                            // .signInWithGoogle();
-                            .signInAnonymously();
-                      } on FirebaseAuthException catch (e) {
-                        showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                                title: Text('Login error'),
-                                content: Text(e.code)));
-                      }
-                      setState(() {
-                        RequestNGO = true;
-                      });
-                    },
-                  ),
-                ],
+            return Scaffold(
+              appBar: AppBar(title: Text('Login')),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      child: Text('Sign in'),
+                      onPressed: () async {
+                        //Ik moet gaan kijken hoe try catch blocks werken
+                        //TODO try and catch werken niet met Future zonder await gerbuik in de plaats callbacks
+                        try {
+                          /*
+                          Canceling google sign in causese exception
+                          Apparently only a problem in release mode
+                          https://stackoverflow.com/questions/59561486/canceling-google-sign-in-cause-an-exception-in-flutter
+                          */
+                          await state.signInWithGoogle();
+                          //.signInAnonymously();
+                        } on FirebaseAuthException catch (e) {
+                          showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                  title: Text('Login error'),
+                                  content: Text(e.code)));
+                        }
+                      },
+                    ),
+                    ElevatedButton(
+                      child: Text('Request NGO status'),
+                      onPressed: () async {
+                        try {
+                          await state.signInWithGoogle();
+                          //.signInAnonymously();
+                        } on FirebaseAuthException catch (e) {
+                          showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                  title: Text('Login error'),
+                                  content: Text(e.code)));
+                        }
+                        state.RequestNGO = true;
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       );
 }
 
@@ -247,14 +245,11 @@ class EventScreen extends StatelessWidget {
         final retwidget = <Widget>[];
         retwidget.add(SizedBox(height: 20));
         if (state.myevents) {
-          retwidget.add(Text(
-            state.isNGO ? 'Events by me' : 'Events I joined',
-            textScaleFactor: 1.5,
-          ));
           retwidget.add(Expanded(
-              child: EventList(state.isNGO
-                  ? db.getEvents(organizer: userID)
-                  : db.getEvents(participant: userID))));
+            child: EventList(db.getEvents(
+                organizer: state.RequestNGO ? userID : null,
+                participant: userID)),
+          ));
         } else {
           retwidget.add(
             Text(
@@ -302,24 +297,22 @@ class EventScreen extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: Consumer<MyAppState>(
-                builder: (context, state, _) => Container(
-                  height: 60,
-                  child: !state.isNGO
-                      ? null
-                      : TextButton(
-                          child: Text('Organize'),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    OrganizeScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                ),
+              child: Container(
+                height: 60,
+                child: !state.RequestNGO
+                    ? null
+                    : TextButton(
+                        child: Text('Organize'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (BuildContext context) =>
+                                  OrganizeScreen(),
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
           ],
@@ -378,11 +371,12 @@ class EventScreenDrawer extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: null,
+            /*() {
               var state = Provider.of<MyAppState>(context, listen: false);
               state.isNGO = !state.isNGO;
               Navigator.pop(context);
-            },
+            },*/
             child: ListTile(
               title: Text('Toggle NGO'),
             ),
@@ -511,7 +505,7 @@ class _EventDetailState extends State<EventDetail> {
   Widget build(BuildContext context) {
     //Event e = Event.fromSnapshot(await db.getEventByID(widget.e.id));
     return StreamBuilder(
-        stream: db.getEventByID(this.widget.e.id!),
+        stream: db.snapshotsEventByID(this.widget.e.id!),
         builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
           if (snapshot.hasError) {
             return Text("Something went wrong");
@@ -521,7 +515,7 @@ class _EventDetailState extends State<EventDetail> {
             return Text("Event ${this.widget.e.id} does not exist");
           }
 
-          if (snapshot.connectionState != ConnectionState.done) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return LinearProgressIndicator();
           }
 
@@ -544,7 +538,7 @@ class _EventDetailState extends State<EventDetail> {
                       ListTile(
                           title: Text(
                               'Current number of sign ups: ${e.participants.length}')),
-                      FutureBuilder<DocumentSnapshot>(
+                      /*FutureBuilder<DocumentSnapshot>(
                         future: db.getLocByID(e.location.id),
                         builder: (BuildContext context,
                             AsyncSnapshot<DocumentSnapshot> snapshot) {
@@ -571,7 +565,7 @@ class _EventDetailState extends State<EventDetail> {
 
                           return LinearProgressIndicator();
                         },
-                      ),
+                      ),*/
                       ListTile(
                         title: Text('Phone number lead: $phone_number'),
                         subtitle: Text('(will get send to the participants)'),
@@ -580,27 +574,31 @@ class _EventDetailState extends State<EventDetail> {
                   ),
                 ),
                 Consumer<MyAppState>(builder: (context, state, _) {
-                  if (e.organizers.contains(userID))
-                    return ElevatedButton(
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => WrapUpScreen(e))),
-                      child: Text('Wrap up'),
-                    );
                   bool joined = e.participants.contains(userID);
-                  return ElevatedButton(
-                    onPressed: () {
-                      //TODO replace with e.toggleParticipation(userID!);
-                      if (joined)
-                        e.participants.remove(userID);
-                      else
-                        e.participants.add(userID!);
-                      db.updateEvent(e);
-                      setState(() {});
-                    },
-                    child: joined ? Text('Unjoin') : Text('join'),
-                  );
+                  if (state.RequestNGO && !joined)
+                    return e.organizers.contains(userID)
+                        ? ElevatedButton(
+                            onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => WrapUpScreen(e))),
+                            child: Text('Wrap up'),
+                          )
+                        : Container();
+                  return e.complete
+                      ? Container()
+                      : ElevatedButton(
+                          onPressed: () {
+                            //TODO replace with e.toggleParticipation(userID!);
+                            if (joined)
+                              e.participants.remove(userID);
+                            else
+                              e.participants.add(userID!);
+                            db.updateEvent(e);
+                            setState(() {});
+                          },
+                          child: joined ? Text('Unjoin') : Text('join'),
+                        );
                 }),
               ],
             ),
