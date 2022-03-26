@@ -27,9 +27,11 @@ import 'database.dart';
 import "models/location.dart";
 import "models/locationtype.dart";
 import 'models/events.dart';
+import 'models/role.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'camera.dart';
 
@@ -49,7 +51,6 @@ String? userID;
 
 class MyAppState extends ChangeNotifier {
   bool _isNGO = false;
-  User? _user;
   bool _myevents = false;
 
   bool get isNGO => _isNGO;
@@ -62,27 +63,6 @@ class MyAppState extends ChangeNotifier {
   set myevents(bool value) {
     _myevents = value;
     notifyListeners();
-  }
-
-  User? get user => _user;
-
-  MyAppState() {
-    _init();
-  }
-
-  Future<void> _init() async {
-    await Firebase.initializeApp(
-        options: DefaultFirebaseOptions
-            .android); // TODO: change this to .currentPlatform later
-
-    // We sign the user in anonymously, meaning they get a user ID without having
-    // to provide credentials.
-    //await FirebaseAuth.instance.signInAnonymously();
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      _user = user;
-      if (user != null) userID = user.uid;
-      notifyListeners();
-    });
   }
 
   Future<UserCredential> signInAnonymously() async {
@@ -115,39 +95,141 @@ class MyAppState extends ChangeNotifier {
 class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => ChangeNotifierProvider(
         create: (context) => MyAppState(),
+        //child: MaterialApp(home: LoginScreen()),
         child: MaterialApp(
-          home: //LoginScreen()
-              Consumer<MyAppState>(
-            builder: (context, state, _) =>
-                state.user != null ? EventScreen() : LoginScreen(),
-          ),
-        ),
+            home: FutureBuilder(
+          future:
+              Firebase.initializeApp(options: DefaultFirebaseOptions.android),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text('Cannot initialize firebase');
+            }
+
+            // Once complete, show your application
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return LinearProgressIndicator();
+            }
+            return LoginScreen();
+          },
+        )),
       );
 }
 
-class LoginScreen extends StatelessWidget {
-  Widget build(BuildContext context) => Scaffold(
-        body: Center(
-          child: ElevatedButton(
-            child: Text('Sign in'),
-            onPressed: () {
-              //Ik moet gaan kijken hoe try catch blocks werken
-              try {
-                Provider.of<MyAppState>(context, listen: false)
-                    // .signInWithGoogle();
-                    .signInAnonymously();
-              } on FirebaseAuthException catch (e) {
-                showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                        title: Text('Login error'), content: Text(e.code)));
-              }
-              /*FirebaseAuth.instance.authStateChanges().listen((value) =>
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => EventScreen())));*/
-            },
-          ),
-        ),
+class LoginScreen extends StatefulWidget {
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  bool RequestNGO = false;
+  Widget build(BuildContext context) => StreamBuilder(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, AsyncSnapshot<User?> snapshot) {
+          if (snapshot.hasError) {
+            return Text("Error in authentication");
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+
+          var user = snapshot.data;
+          if (user != null) {
+            userID = user.uid;
+            return FutureBuilder<DocumentSnapshot>(
+              future: db.getRoleByID('organizer'),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) return Text('Error loading roles');
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  return LinearProgressIndicator();
+                if (!snapshot.hasData || snapshot.data == null)
+                  return Text('Role snapshot has no data');
+                print(snapshot.data!.toString());
+                final r = Role.fromSnapshot(snapshot.data!);
+                if (RequestNGO) {
+                  if (r.members.contains(userID)) {
+                    //TODO remove later
+                    Provider.of<MyAppState>(context, listen: false)._isNGO =
+                        true;
+                    return EventScreen(); //isNGO must be set somehow
+                  } else {
+                    String? encodeQueryParameters(Map<String, String> params) {
+                      return params.entries
+                          .map((e) =>
+                              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+                          .join('&');
+                    }
+
+                    final Uri emailLaunchUri = Uri(
+                      scheme: 'mailto',
+                      path: 'uvsgdsc@gmail.com',
+                      query: encodeQueryParameters(<String, String>{
+                        'subject': 'Request NGO account',
+                        'body':
+                            'Hello, I am ${user.displayName} and I would like to request an NGO account.\nUSER ID: ${user.uid}'
+                      }),
+                    );
+
+                    launch(emailLaunchUri.toString());
+                    return EventScreen();
+                  }
+                }
+                return EventScreen();
+              },
+            );
+          }
+
+          return Scaffold(
+            appBar: AppBar(title: Text('Login')),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    child: Text('Sign in as participant'),
+                    onPressed: () async {
+                      //Ik moet gaan kijken hoe try catch blocks werken
+                      //TODO try and catch werken niet met Future zonder await gerbuik in de plaats callbacks
+                      try {
+                        await Provider.of<MyAppState>(context, listen: false)
+                            // .signInWithGoogle();
+                            .signInAnonymously();
+                      } on FirebaseAuthException catch (e) {
+                        showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                                title: Text('Login error'),
+                                content: Text(e.code)));
+                      }
+                      setState(() {
+                        RequestNGO = false;
+                      });
+                    },
+                  ),
+                  ElevatedButton(
+                    child: Text('Sign in as NGO'),
+                    onPressed: () async {
+                      try {
+                        await Provider.of<MyAppState>(context, listen: false)
+                            // .signInWithGoogle();
+                            .signInAnonymously();
+                      } on FirebaseAuthException catch (e) {
+                        showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                                title: Text('Login error'),
+                                content: Text(e.code)));
+                      }
+                      setState(() {
+                        RequestNGO = true;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       );
 }
 
@@ -171,8 +253,8 @@ class EventScreen extends StatelessWidget {
           ));
           retwidget.add(Expanded(
               child: EventList(state.isNGO
-                  ? db.getEvents(organizer: state.user!.uid)
-                  : db.getEvents(participant: state.user!.uid))));
+                  ? db.getEvents(organizer: userID)
+                  : db.getEvents(participant: userID))));
         } else {
           retwidget.add(
             Text(
@@ -286,12 +368,10 @@ class EventScreenDrawer extends StatelessWidget {
           ),
           Consumer<MyAppState>(
             builder: (context, state, _) => TextButton(
-              onPressed: !state.isNGO
-                  ? null
-                  : () {
-                      Navigator.pop(context);
-                      state.myevents = true;
-                    },
+              onPressed: () {
+                Navigator.pop(context);
+                state.myevents = true;
+              },
               child: ListTile(
                 title: Text('My events'),
               ),
@@ -356,31 +436,35 @@ class EventPicturePages extends StatelessWidget {
   }
 }
 
-//TODO Display whether you've joined an event
 class EventTile extends StatelessWidget {
   EventTile(this.e);
   final Event e;
   Widget build(BuildContext context) {
     final pictureToDisplay =
         e.complete ? e.afterPictures[0] : e.beforePictures[0];
-    return ListTile(
-      title: TextButton(
-          onPressed: (() => Navigator.push(context,
-              MaterialPageRoute(builder: (context) => EventDetail(e)))),
-          child: Text('${e.name}')),
-      subtitle: Text('Date: ${e.orgDate}'),
-      leading: TextButton(
-          onPressed: (() => showDialog(
-              context: context,
-              builder: (context) => Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        EventPicturePages(e, before: !e.complete),
-                        ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('back'))
-                      ]))),
-          child: dbPicture(pictureToDisplay)),
+    return Container(
+      color: e.organizers.contains(userID)
+          ? Colors.redAccent
+          : (e.participants.contains(userID) ? Colors.lightGreenAccent : null),
+      child: ListTile(
+        title: TextButton(
+            onPressed: (() => Navigator.push(context,
+                MaterialPageRoute(builder: (context) => EventDetail(e)))),
+            child: Text('${e.name}')),
+        subtitle: Text('Date: ${e.orgDate}'),
+        leading: TextButton(
+            onPressed: (() => showDialog(
+                context: context,
+                builder: (context) => Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          EventPicturePages(e, before: !e.complete),
+                          ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text('back'))
+                        ]))),
+            child: dbPicture(pictureToDisplay)),
+      ),
     );
   }
 }
@@ -477,7 +561,12 @@ class _EventDetailState extends State<EventDetail> {
                               ConnectionState.done) {
                             Map<String, dynamic> data =
                                 snapshot.data!.data() as Map<String, dynamic>;
-                            return Text("Location: ${data['geo']}");
+                            return Container(
+                              height: 400,
+                              width: 400,
+                              child: EventMap(e.location.id),
+                              // child: MapSample(),
+                            );
                           }
 
                           return LinearProgressIndicator();
@@ -491,7 +580,7 @@ class _EventDetailState extends State<EventDetail> {
                   ),
                 ),
                 Consumer<MyAppState>(builder: (context, state, _) {
-                  if (state.isNGO)
+                  if (e.organizers.contains(userID))
                     return ElevatedButton(
                       onPressed: () => Navigator.push(
                           context,
@@ -502,6 +591,7 @@ class _EventDetailState extends State<EventDetail> {
                   bool joined = e.participants.contains(userID);
                   return ElevatedButton(
                     onPressed: () {
+                      //TODO replace with e.toggleParticipation(userID!);
                       if (joined)
                         e.participants.remove(userID);
                       else
@@ -570,6 +660,7 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                             Text(orgDate != null ? orgDate.toString() : ''),
                       ),
                     ),
+                    Divider(),
                     TextButton(
                       onPressed: () {},
                       child: ListTile(
@@ -578,65 +669,39 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                       ),
                     ),
                     Divider(),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Name of event',
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'Name of event',
+                        ),
+                        onSaved: (String? value) {
+                          name = value;
+                        },
+                        validator: (String? value) {
+                          return (value == null || value.isEmpty)
+                              ? 'Event must have a name.'
+                              : null;
+                        },
                       ),
-                      onSaved: (String? value) {
-                        name = value;
-                      },
-                      validator: (String? value) {
-                        return (value == null || value.isEmpty)
-                            ? 'Event must have a name.'
-                            : null;
-                      },
                     ),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                        onSaved: (String? value) {
+                          description = value;
+                        },
+                        validator: (String? value) {
+                          return (value == null || value.isEmpty)
+                              ? 'Event must have a description.'
+                              : null;
+                        },
+                        keyboardType: TextInputType.multiline,
+                        maxLength: null,
+                        maxLines: null,
                       ),
-                      onSaved: (String? value) {
-                        description = value;
-                      },
-                      validator: (String? value) {
-                        return (value == null || value.isEmpty)
-                            ? 'Event must have a description.'
-                            : null;
-                      },
                     ),
-                    /*
-                TextFormField(
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Max number of attendees',
-                  ),
-                  onSaved: (String? value) {
-                    // This optional block of code can be used to run
-                    // code when the user saves the form.
-                  },
-                  validator: (String? value) {
-                    return (value != null && value.contains('@'))
-                        ? 'Do not use the @ char.'
-                        : null;
-                  },
-                ),
-                //https://pub.dev/packages/phone_number
-                TextFormField(
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone number',
-                  ),
-                  onSaved: (String? value) {
-                    // This optional block of code can be used to run
-                    // code when the user saves the form.
-                  },
-                  validator: (String? value) {
-                    return (value != null && value.contains('@'))
-                        ? 'Do not use the @ char.'
-                        : null;
-                  },
-                ),
-                */
                     TextButton(
                       onPressed: () => Navigator.push(
                         context,
@@ -696,7 +761,7 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                           true,
                           DateTime.now(),
                           orgDate!,
-                          [],
+                          [userID!],
                           [],
                           picturesToUpload,
                           [],
@@ -726,6 +791,7 @@ class StatisticsScreen extends StatelessWidget {
 }
 
 //TODO Finish WrapUpScreen
+//TODO WrapUp before orgdate is equal to cancel?
 class WrapUpScreen extends StatelessWidget {
   Event e;
   WrapUpScreen(this.e);
@@ -735,6 +801,21 @@ class WrapUpScreen extends StatelessWidget {
       body: Center(
         child: Text(
           'Wrap up',
+          textScaleFactor: 4,
+        ),
+      ),
+    );
+  }
+}
+
+class UnreachableScreen extends StatelessWidget {
+  UnreachableScreen();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Unreachable')),
+      body: Center(
+        child: Text(
+          'Unreachable',
           textScaleFactor: 4,
         ),
       ),
@@ -821,11 +902,6 @@ class EventList extends StatelessWidget {
             return LinearProgressIndicator();
           }
           var docs = snapshot.data?.docs;
-          /*return ListView(
-            children: docs!
-                .map((data) => EventTile(Event.fromSnapshot(data)))
-                .toList(),
-          );*/
           return ListView.builder(
               itemCount: docs!.length,
               itemBuilder: (context, index) =>
@@ -854,12 +930,67 @@ class ClosedEventList extends StatelessWidget {
               itemCount: docs!.length,
               itemBuilder: (context, index) =>
                   EventTile(Event.fromSnapshot(docs[index])));
-          /*return PageView(
-            controller: PageController(),
-            children: docs!.map((data) {
-              return EventTile(Event.fromSnapshot(data));
-            }).toList(),
-          );*/
+        });
+  }
+}
+
+class EventMap extends StatefulWidget {
+  @override
+  State<EventMap> createState() => EventMapState();
+
+  EventMap(this.locId);
+  String locId;
+}
+
+class EventMapState extends State<EventMap> {
+  Completer<GoogleMapController> _controller = Completer();
+  EventMapState();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: db.getLocByID(this.widget.locId),
+        builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+          if (snapshot.hasError) {
+            print(snapshot.error);
+          }
+          if (snapshot.hasData && !snapshot.data!.exists) {
+            return Text("Document does not exist");
+          }
+          if (snapshot.connectionState == ConnectionState.done) {
+            var data = snapshot.data!["geo"] as GeoPoint;
+            LatLng loc = LatLng(data.latitude, data.longitude);
+            return Scaffold(
+              body: GoogleMap(
+                mapType: MapType.hybrid,
+                markers: {
+                  Marker(alpha: 1, position: loc, markerId: MarkerId("example"))
+                },
+                initialCameraPosition: CameraPosition(
+                  target: loc,
+                  bearing: 0,
+                  tilt: 0,
+                  zoom: 20,
+                ),
+                onMapCreated: (GoogleMapController controller) {
+                  _controller.complete(controller);
+                },
+              ),
+              floatingActionButton: FloatingActionButton.extended(
+                onPressed: () async {
+                  print(loc);
+                  final GoogleMapController controller =
+                      await _controller.future;
+                  controller.animateCamera(CameraUpdate.newCameraPosition(
+                      CameraPosition(
+                          bearing: 0, target: loc, tilt: 0, zoom: 20)));
+                },
+                label: Text('To the lake!'),
+                icon: Icon(Icons.directions_boat),
+              ),
+            );
+          }
+          return LinearProgressIndicator();
         });
   }
 }

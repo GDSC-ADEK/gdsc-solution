@@ -14,7 +14,9 @@ class Role {
 }
 
 Role roleFromJson(Map<String, Object?> json) {
-  return Role(json["name"] as String, json["members"] as List<String>);
+  return Role(json["name"] as String,
+      (json["members"] as List<dynamic>).cast<String>());
+  //return Role(json["name"] as String, json["members"] as List<String>);
 }
 
 Map<String, Object?> roleToJson(Role r) {

@@ -57,6 +57,10 @@ class Fdatabase {
     return _events.doc(id.trim()).get().asStream();
   }
 
+  Future<DocumentSnapshot> getRoleByID(String id) {
+    return _roles.doc(id.trim()).get();
+  }
+
   /// adds LocationType to database
   Future<DocumentReference> addLocType(LocationType lt) {
     return _LocTypes.add(lt.toJson());
