@@ -371,14 +371,13 @@ class EventScreenDrawer extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: null,
-            /*() {
-              var state = Provider.of<MyAppState>(context, listen: false);
-              state.isNGO = !state.isNGO;
+            onPressed: () {
               Navigator.pop(context);
-            },*/
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => RecycleMap()));
+            },
             child: ListTile(
-              title: Text('Toggle NGO'),
+              title: Text('Recycle Bin Map'),
             ),
           ),
         ],
@@ -985,6 +984,71 @@ class EventMapState extends State<EventMap> {
                 },
                 label: Text('To the lake!'),
                 icon: Icon(Icons.directions_boat),
+              ),
+            );
+          }
+          return LinearProgressIndicator();
+        });
+  }
+}
+
+class RecycleMap extends StatefulWidget {
+  @override
+  State<RecycleMap> createState() => RecycleMapState();
+
+  RecycleMap();
+}
+
+class RecycleMapState extends State<RecycleMap> {
+  Completer<GoogleMapController> _controller = Completer();
+  RecycleMapState();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: db.getRecycleBins(),
+        builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+          if (snapshot.hasError) {
+            print(snapshot.error);
+          }
+          if (snapshot.hasData && !snapshot.data!.exists) {
+            return Text("Document does not exist");
+          }
+          if (snapshot.connectionState == ConnectionState.done) {
+            var pins = (snapshot.data!["loc"] as List<dynamic>).map((e) {
+              return Marker(
+                  alpha: 1,
+                  position: LatLng(e.latitude, e.longitude),
+                  markerId: MarkerId("example"));
+            }).toList();
+            var startLoc = pins[0].position;
+            print(pins);
+            LatLng loc = LatLng(0, 0);
+            return Scaffold(
+              body: GoogleMap(
+                mapType: MapType.hybrid,
+                markers: pins.toSet(),
+                initialCameraPosition: CameraPosition(
+                  target: startLoc,
+                  bearing: 0,
+                  tilt: 0,
+                  zoom: 17,
+                ),
+                onMapCreated: (GoogleMapController controller) {
+                  _controller.complete(controller);
+                },
+              ),
+              floatingActionButton: FloatingActionButton.extended(
+                onPressed: () async {
+                  print(loc);
+                  final GoogleMapController controller =
+                      await _controller.future;
+                  controller.animateCamera(CameraUpdate.newCameraPosition(
+                      CameraPosition(
+                          bearing: 0, target: startLoc, tilt: 0, zoom: 20)));
+                },
+                label: Text('To the initial position'),
+                icon: Icon(Icons.arrow_back_rounded),
               ),
             );
           }

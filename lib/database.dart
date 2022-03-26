@@ -114,9 +114,40 @@ class Fdatabase {
     return _events.add(e.toJson());
   }
 
+  int count = 0;
+
   /// Updates existing Event in database
   void updateEvent(Event e) async {
+    print("updateEv called ${count++} times");
+
+    if (e.changes != null) {
+      var id = e.id;
+      var event_ref = _events.doc(id);
+      _firestore.runTransaction((transaction) async {
+        DocumentSnapshot snapshot = await transaction.get(event_ref);
+
+        if (!snapshot.exists) {
+          throw Exception(
+              "Event does not exist!(you reaaally shouldn't be getting this error, tho)");
+        }
+        List<dynamic> participants_ =
+            (snapshot.data() as Map<String, dynamic>)["participants"];
+        List<String> participants = participants_.cast<String>();
+        if (e.changes!.containsKey("joined")) {
+          participants.add(e.changes!["joined"]!);
+        }
+        if (e.changes!.containsKey("unjoined")) {
+          participants.remove(e.changes!["unjoined"]!);
+        }
+        // Perform an update on the document
+        transaction.update(event_ref, {'participants': participants});
+
+        // Return the new count
+        return participants;
+      });
+    }
     await _events.doc(e.id).update(e.toJson());
+    return;
   }
 
   /// deletes Event in database
@@ -231,5 +262,12 @@ class Fdatabase {
       event.afterPictures.add(value);
       updateEvent(event);
     });
+  }
+
+  Future<DocumentSnapshot> getRecycleBins() {
+    return FirebaseFirestore.instance
+        .collection('recyclebins')
+        .doc("locations")
+        .get();
   }
 }

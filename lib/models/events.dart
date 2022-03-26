@@ -30,6 +30,21 @@ class Event {
   num garbageCollected;
   DocumentReference location;
   String? id;
+  Map<String, String>? changes = null;
+  void toggleParticipation(String uuid) {
+    if (changes == null) {
+      changes = {};
+    }
+    print(participants);
+    bool participating = participants.contains(uuid);
+    if (participating) {
+      participants.remove(uuid);
+      changes?["unjoined"] = uuid;
+    } else {
+      participants.add(uuid);
+      changes?["joined"] = uuid;
+    }
+  }
 
   factory Event.fromJson(Map<String, Object?> json) => eventFromJson(json);
   factory Event.fromSnapshot(DocumentSnapshot snapshot) =>
@@ -43,20 +58,18 @@ class Event {
 Event eventFromJson(Map<String, Object?> json) {
   DateTime create = DateTime.now();
   DateTime org = DateTime.now();
-  try{
+  try {
     if (json["creationDate"] is Timestamp) {
       create = (json["creationDate"] as Timestamp).toDate();
       org = (json["orgDate"] as Timestamp).toDate();
-    }
-    else if (json["creationDate"] is int){
+    } else if (json["creationDate"] is int) {
       create = DateTime.fromMillisecondsSinceEpoch(json["creationDate"] as int);
       org = DateTime.fromMillisecondsSinceEpoch(json["orgDate"] as int);
+    } else if (json["creationDate"] is DateTime) {
+      create = json["creationDate"] as DateTime;
+      org = json["creationDate"] as DateTime;
     }
-    else if (json["creationDate"] is DateTime){
-      create =json["creationDate"] as DateTime;
-      org =  json["creationDate"] as DateTime;
-    }
-  } catch(e){
+  } catch (e) {
     print(e);
   }
   var loc = json["location"] as DocumentReference;
