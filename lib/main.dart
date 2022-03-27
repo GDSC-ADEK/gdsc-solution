@@ -49,6 +49,7 @@ void main() async {
 
 Fdatabase db = Fdatabase();
 String? userID;
+String? email;
 
 class MyAppState extends ChangeNotifier {
   bool _myevents = false;
@@ -143,6 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (state.RequestNGO != value) state.RequestNGO = value;
               });
               userID = user.uid;
+              email = user.email;
               return FutureBuilder<DocumentSnapshot>(
                 future: db.getRoleByID('organizer'),
                 builder: (context, snapshot) {
@@ -167,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       query: encodeQueryParameters(<String, String>{
                         'subject': 'Request NGO status',
                         'body':
-                            'Hello, I am ${user.displayName} and I would like to request NGO status.\nUSER ID: ${user.uid}'
+                            'Hello, I am ${user.email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
                       }),
                     );
 
@@ -236,32 +238,26 @@ class EventScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: EventScreenDrawer(),
-      appBar: AppBar(
-          title: Consumer<MyAppState>(
-              builder: (context, state, _) {
-                String my_text = (state.RequestNGO)? "Organized" : "Joined";
-                return Text(
-                  state.myevents ? '$my_text events' : 'All events',
-                  textScaleFactor: 1.5,
-                );
-              })),
+      appBar: AppBar(title: Consumer<MyAppState>(builder: (context, state, _) {
+        String my_text = (state.RequestNGO) ? "Organized" : "Joined";
+        return Text(
+          state.myevents ? '$my_text events' : 'All events',
+          textScaleFactor: 1.5,
+        );
+      })),
       body: Consumer<MyAppState>(builder: (context, state, _) {
         final retwidget = <Widget>[];
         retwidget.add(SizedBox(height: 20));
         if (state.myevents) {
-          if (state.RequestNGO){
+          if (state.RequestNGO) {
             retwidget.add(Expanded(
-              child: EventList(db.getEvents(
-                  organizer: userID)),
+              child: EventList(db.getEvents(organizer: userID)),
+            ));
+          } else {
+            retwidget.add(Expanded(
+              child: EventList(db.getEvents(participant: userID)),
             ));
           }
-          else {
-            retwidget.add(Expanded(
-              child: EventList(db.getEvents(
-              participant: userID)),
-            ));
-          }
-
         } else {
           retwidget.add(
             Text(
@@ -280,7 +276,7 @@ class EventScreen extends StatelessWidget {
             ),
           );
           retwidget.add(Container(
-              height: 190,
+              height: 170,
               child: ClosedEventList(
                   db.getEvents(completed: true, published: true))));
 
@@ -337,71 +333,78 @@ class EventScreen extends StatelessWidget {
 
 class EventScreenDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
-    return Container(width: 200, child: Drawer(
-      child: ListView(
-        children: [
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.blue,
-            ),
-            child: Text(
-              'Drawer',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
+    return Container(
+      width: 200,
+      child: Drawer(
+        child: ListView(
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'Drawer',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              //TODO Use popUntil LoginScreen
-              Provider.of<MyAppState>(context, listen: false).signOut();
-            },
-            child: ListTile(
-              leading: Icon(Icons.exit_to_app),
-              title: Text('Sign Out', ),
-            ),
-          ),
-          Divider(),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Provider.of<MyAppState>(context, listen: false).myevents = false;
-            },
-            child: ListTile(
-              leading: Icon(Icons.event),
-              title: Text('All events'),
-            ),
-          ),
-          Divider(),
-          Consumer<MyAppState>(
-            builder: (context, state, _) => TextButton(
+            TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                state.myevents = true;
+                //TODO Use popUntil LoginScreen
+                Provider.of<MyAppState>(context, listen: false).signOut();
               },
               child: ListTile(
-                leading: Icon(Icons.event_available),
-                title: Text('${state.RequestNGO? "Organized" : "Joined"} events'),
+                leading: Icon(Icons.exit_to_app),
+                title: Text(
+                  'Sign Out',
+                ),
               ),
             ),
-          ),
-          Divider(),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => RecycleMap()));
-            },
-            child: ListTile(
-              title: Text('Recycle Bins'),
-              leading: Icon(Icons.map),
+            Divider(),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Provider.of<MyAppState>(context, listen: false).myevents =
+                    false;
+              },
+              child: ListTile(
+                leading: Icon(Icons.event),
+                title: Text('All events'),
+              ),
             ),
-          ),
-        ],
+            Divider(),
+            Consumer<MyAppState>(
+              builder: (context, state, _) => TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  state.myevents = true;
+                },
+                child: ListTile(
+                  leading: Icon(Icons.event_available),
+                  title: Text(
+                      '${state.RequestNGO ? "Organized" : "Joined"} events'),
+                ),
+              ),
+            ),
+            Divider(),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => RecycleMap()));
+              },
+              child: ListTile(
+                title: Text('Recycle Bins'),
+                leading: Icon(Icons.map),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),);
+    );
   }
 }
 
@@ -460,52 +463,29 @@ class EventTile extends StatelessWidget {
           : (e.participants.contains(userID) ? Colors.lightGreenAccent : null),
       child: Card(
         child: InkWell(
-      splashColor: Colors.blue.withAlpha(30),
-      onTap: (() => Navigator.push(context,
-          MaterialPageRoute(builder: (context) => EventDetail(e)))),
-      child: Column(
-            mainAxisSize: MainAxisSize.max,
-            children: <Widget>[
-              ListTile(
-                leading: dbPicture(pictureToDisplay),
-                title: Text('${e.name} on ${ DateFormat("dd MMM yy H:mm").format(e.orgDate)}'),
-                subtitle: Text((e.description.length < 300) ? '${e.description}': e.description.substring(0, 300) + "..." ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: <Widget>[
-                  const SizedBox(width: 8),
-                  Icon(Icons.people_alt),
-                  Text("${e.participants.length}"),
-                  const SizedBox(width: 8),
-                ],
-              ),
-            ]),
-      ),
-    ),
-    );
-    return Container(
-      color: e.organizers.contains(userID)
-          ? Colors.redAccent
-          : (e.participants.contains(userID) ? Colors.lightGreenAccent : null),
-      child: ListTile(
-        title: TextButton(
-            onPressed: (() => Navigator.push(context,
-                MaterialPageRoute(builder: (context) => EventDetail(e)))),
-            child: Text('${e.name}')),
-        subtitle: Text('Date: ${e.orgDate}'),
-        leading: TextButton(
-            onPressed: (() => showDialog(
-                context: context,
-                builder: (context) => Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      EventPicturePages(e, before: !e.complete),
-                      ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('back'))
-                    ]))),
-            child: dbPicture(pictureToDisplay)),
+          splashColor: Colors.blue.withAlpha(30),
+          onTap: (() => Navigator.push(context,
+              MaterialPageRoute(builder: (context) => EventDetail(e)))),
+          child: Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
+            ListTile(
+              leading: Container(child: dbPicture(pictureToDisplay), width: 75,height: 75, padding: EdgeInsets.all(0),),
+              title: Text(
+                  '${e.name} on ${DateFormat("dd MMM yy H:mm").format(e.orgDate)}'),
+              subtitle: Text((e.description.length < 150)
+                  ? '${e.description}'
+                  : e.description.substring(0, 149) + "..."),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                const SizedBox(width: 8),
+                Icon(Icons.people_alt),
+                Text("${e.participants.length}"),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -548,13 +528,13 @@ class EventDetail extends StatefulWidget {
 class _EventDetailState extends State<EventDetail> {
   final int max_attendees = 20;
 
-  final String phone_number = '+5978855645';
 
   Widget build(BuildContext context) {
     //Event e = Event.fromSnapshot(await db.getEventByID(widget.e.id));
     return StreamBuilder(
         stream: db.snapshotsEventByID(this.widget.e.id!),
         builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+
           if (snapshot.hasError) {
             return Text("Something went wrong");
           }
@@ -579,15 +559,17 @@ class _EventDetailState extends State<EventDetail> {
                     children: [
                       EventPicturePages(e, before: !e.complete),
                       EventPanelList(e),
-                      ListTile(leading: Icon(Icons.date_range),title: Text('${DateFormat("dd MMM yy H:mm").format(e.orgDate)}')),
                       ListTile(
-                        leading: Icon(Icons.people),
+                          leading: Icon(Icons.date_range),
                           title: Text(
-                              '${e.participants.length} ${(e.participants.length == 1)? "person" : "people"} joined')),
-
+                              '${DateFormat("dd MMM yy H:mm").format(e.orgDate)}')),
                       ListTile(
-                        title: Text('Phone number lead: $phone_number'),
-                        subtitle: Text('(will get send to the participants)'),
+                          leading: Icon(Icons.people),
+                          title: Text(
+                              '${e.participants.length} ${(e.participants.length == 1) ? "person" : "people"} joined')),
+                      ListTile(
+                        title: Text('$email'),
+                        leading: Icon(Icons.email),
                       ),
                     ],
                   ),
@@ -631,7 +613,8 @@ class _EventDetailState extends State<EventDetail> {
                 Consumer<MyAppState>(builder: (context, state, _) {
                   bool joined = e.participants.contains(userID);
                   if (state.RequestNGO && !joined)
-                    return (e.organizers.contains(userID) &&  e.complete == false)
+                    return (e.organizers.contains(userID) &&
+                            e.complete == false)
                         ? ElevatedButton(
                             onPressed: () => Navigator.push(
                                 context,
@@ -826,7 +809,7 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                       }
                       Event e = Event(
                           name!,
-                          'TEST UPLOAD FROM APP: ' + description!,
+                          description!,
                           false,
                           true,
                           DateTime.now(),
@@ -919,8 +902,8 @@ class WrapUpScreen extends StatelessWidget {
                         height: 200,
                         child: PageView.builder(
                             itemCount: afterPics.length,
-                            itemBuilder: (context, index) => Image.file(File(
-                                afterPics[index])))), // pictures shown
+                            itemBuilder: (context, index) => Image.file(
+                                File(afterPics[index])))), // pictures shown
                   ],
                 ),
               ),
@@ -972,7 +955,6 @@ class UnreachableScreen extends StatelessWidget {
     );
   }
 }
-
 
 class EventList extends StatelessWidget {
   final Stream<QuerySnapshot> stream;
