@@ -377,8 +377,8 @@ class EventScreenDrawer extends StatelessWidget {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => LocationPickerMap(
-                          (GeoPoint geo) {})));
+                      builder: (context) =>
+                          LocationPickerMap((GeoPoint geo) {})));
             },
             child: ListTile(
               title: Text('Event picker Map'),
@@ -568,10 +568,9 @@ class _EventDetailState extends State<EventDetail> {
                           "Document \"${e.location.id}\" does not exist");
                     }
 
-                    if (snapshot.connectionState ==
-                        ConnectionState.done) {
+                    if (snapshot.connectionState == ConnectionState.done) {
                       Map<String, dynamic> data =
-                      snapshot.data!.data() as Map<String, dynamic>;
+                          snapshot.data!.data() as Map<String, dynamic>;
                       return RaisedButton(
                         color: Colors.blue,
                         onPressed: () {
@@ -579,8 +578,8 @@ class _EventDetailState extends State<EventDetail> {
                               context,
                               MaterialPageRoute(
                                   builder: (context) => Scaffold(
-                                      appBar: AppBar(
-                                          title: Text("Back to event")),
+                                      appBar:
+                                          AppBar(title: Text("Back to event")),
                                       body: EventMap(e.location.id))));
                         },
                         child: ListTile(
@@ -595,7 +594,7 @@ class _EventDetailState extends State<EventDetail> {
                 Consumer<MyAppState>(builder: (context, state, _) {
                   bool joined = e.participants.contains(userID);
                   if (state.RequestNGO && !joined)
-                    return e.organizers.contains(userID)
+                    return (e.organizers.contains(userID) &&  e.complete == false)
                         ? ElevatedButton(
                             onPressed: () => Navigator.push(
                                 context,
@@ -693,8 +692,8 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                                 builder: (context) => Scaffold(
                                     appBar: AppBar(
                                         title: Text("Back to event creation")),
-                                    body: LocationPickerMap(
-                                        locationCallback))));
+                                    body:
+                                        LocationPickerMap(locationCallback))));
                       },
                       child: ListTile(
                         title: Text(((loc.latitude == 0) && (loc.latitude == 0))
@@ -828,17 +827,97 @@ class StatisticsScreen extends StatelessWidget {
 //TODO WrapUp before orgdate is equal to cancel?
 class WrapUpScreen extends StatelessWidget {
   Event e;
+  List<String> afterPics = [];
+  List<String> picturesToUpload = [];
   WrapUpScreen(this.e);
+  final _formKey = GlobalKey<FormState>();
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Wrap up')),
-      body: Center(
-        child: Text(
-          'Wrap up',
-          textScaleFactor: 4,
+        appBar: AppBar(
+          title: Text('wrap up'),
         ),
-      ),
-    );
+        body: Form(
+            key: _formKey,
+            child: Column(children: [
+              Expanded(
+                child: ListView(
+                  children: [
+                    Divider(),
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'How much garbage did you collect? (kg)',
+                        ),
+                        onSaved: (String? value) {
+                          // POTENTIAL ERROR!!!!!!!!!!!!!!!!!!
+                          e.complete = true;
+                          e.garbageCollected = double.parse(value!);
+                          db.updateEvent(e);
+                        },
+                        validator: (String? value) {
+                          return (value == null || value.isEmpty)
+                              ? 'Event must have some garbage collected.'
+                              : null;
+                        },
+                        keyboardType: TextInputType.number,
+                        maxLength: null,
+                        maxLines: null,
+                      ),
+                    ), // num garbage collected
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TakePictureScreen(
+                              cameraCallback: (path) => afterPics.add(path)),
+                        ),
+                      ),
+                      child: ListTile(
+                        title: Text('Photo'),
+                        leading: const Icon(Icons.camera_alt),
+                      ),
+                    ), // add after pictures
+                    Divider(),
+                    Container(
+                        height: 200,
+                        child: PageView.builder(
+                            itemCount: afterPics.length,
+                            itemBuilder: (context, index) => Image.file(File(
+                                afterPics[index])))), // pictures shown
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                  onPressed: () async {
+                    // Validate returns true if the form is valid, or false otherwise.
+                    print('sending');
+                    if (_formKey.currentState!.validate()) {
+                      if (afterPics.length < 1) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('A photo is necessary')),
+                        );
+                        return;
+                      }
+                      if (e.complete == false) {
+                        e.complete = true;
+                        db.updateEvent(e);
+                        // ScaffoldMessenger.of(context).showSnackBar(
+                        //   SnackBar(
+                        //       content:
+                        //           Text('The event must be marked complete')),
+                        // );
+                        return;
+                      }
+                      _formKey.currentState!.save();
+
+                      for (var imagePath in afterPics) {
+                        db.uploadAfterImgToEvent(e, File(imagePath));
+                      }
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Text('update')),
+            ])));
   }
 }
 
