@@ -28,6 +28,7 @@ import "models/location.dart";
 import "models/locationtype.dart";
 import 'models/events.dart';
 import 'models/role.dart';
+import 'map_widgets.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -457,6 +458,19 @@ class EventScreenDrawer extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          LocationPickerMap((GeoPoint geo) {})));
+            },
+            child: ListTile(
+              title: Text('Event picker Map'),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => RecycleMap()));
             },
@@ -616,39 +630,8 @@ class _EventDetailState extends State<EventDetail> {
                       EventPanelList(e),
                       ListTile(title: Text('Day organized: ${e.orgDate}')),
                       ListTile(
-                          title:
-                              Text('Max number of attendees: $max_attendees')),
-                      ListTile(
                           title: Text(
                               'Current number of sign ups: ${e.participants.length}')),
-                      /*FutureBuilder<DocumentSnapshot>(
-                        future: db.getLocByID(e.location.id),
-                        builder: (BuildContext context,
-                            AsyncSnapshot<DocumentSnapshot> snapshot) {
-                          if (snapshot.hasError) {
-                            return Text("Something went wrong");
-                          }
-
-                          if (snapshot.hasData && !snapshot.data!.exists) {
-                            return Text(
-                                "Document \"${e.location.id}\" does not exist");
-                          }
-
-                          if (snapshot.connectionState ==
-                              ConnectionState.done) {
-                            Map<String, dynamic> data =
-                                snapshot.data!.data() as Map<String, dynamic>;
-                            return Container(
-                              height: 400,
-                              width: 400,
-                              child: EventMap(e.location.id),
-                              // child: MapSample(),
-                            );
-                          }
-
-                          return LinearProgressIndicator();
-                        },
-                      ),*/
                       ListTile(
                         title: Text('Phone number lead: $phone_number'),
                         subtitle: Text('(will get send to the participants)'),
@@ -656,10 +639,46 @@ class _EventDetailState extends State<EventDetail> {
                     ],
                   ),
                 ),
+                FutureBuilder<DocumentSnapshot>(
+                  future: db.getLocByID(e.location.id),
+                  builder: (BuildContext context,
+                      AsyncSnapshot<DocumentSnapshot> snapshot) {
+                    if (snapshot.hasError) {
+                      return Text("Something went wrong");
+                    }
+
+                    if (snapshot.hasData && !snapshot.data!.exists) {
+                      return Text(
+                          "Document \"${e.location.id}\" does not exist");
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      Map<String, dynamic> data =
+                          snapshot.data!.data() as Map<String, dynamic>;
+                      return RaisedButton(
+                        color: Colors.blue,
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Scaffold(
+                                      appBar:
+                                          AppBar(title: Text("Back to event")),
+                                      body: EventMap(e.location.id))));
+                        },
+                        child: ListTile(
+                          title: Text("View location"),
+                        ),
+                      );
+                    }
+
+                    return LinearProgressIndicator();
+                  },
+                ),
                 Consumer<MyAppState>(builder: (context, state, _) {
                   bool joined = e.participants.contains(userID);
                   if (state.RequestNGO && !joined)
-                    return e.organizers.contains(userID)
+                    return (e.organizers.contains(userID) &&  e.complete == false)
                         ? ElevatedButton(
                             onPressed: () => Navigator.push(
                                 context,
@@ -707,7 +726,14 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
   final List<String> beforePictures = [];
   final List<String> picturesToUpload = [];
   DocumentReference<Object?>? location;
+  GeoPoint loc = GeoPoint(0, 0);
   final _formKey = GlobalKey<FormState>();
+  void locationCallback(GeoPoint geo) {
+    setState(() {
+      loc = geo;
+    });
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
@@ -744,10 +770,20 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                     ),
                     Divider(),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Scaffold(
+                                    appBar: AppBar(
+                                        title: Text("Back to event creation")),
+                                    body:
+                                        LocationPickerMap(locationCallback))));
+                      },
                       child: ListTile(
-                        title: Text('Choose location'),
-                        trailing: Text('Cultuurtuinlaan 23'),
+                        title: Text(((loc.latitude == 0) && (loc.latitude == 0))
+                            ? "Pick location"
+                            : "Select new location"),
                       ),
                     ),
                     Divider(),
@@ -876,17 +912,97 @@ class StatisticsScreen extends StatelessWidget {
 //TODO WrapUp before orgdate is equal to cancel?
 class WrapUpScreen extends StatelessWidget {
   Event e;
+  List<String> afterPics = [];
+  List<String> picturesToUpload = [];
   WrapUpScreen(this.e);
+  final _formKey = GlobalKey<FormState>();
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Wrap up')),
-      body: Center(
-        child: Text(
-          'Wrap up',
-          textScaleFactor: 4,
+        appBar: AppBar(
+          title: Text('wrap up'),
         ),
-      ),
-    );
+        body: Form(
+            key: _formKey,
+            child: Column(children: [
+              Expanded(
+                child: ListView(
+                  children: [
+                    Divider(),
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'How much garbage did you collect? (kg)',
+                        ),
+                        onSaved: (String? value) {
+                          // POTENTIAL ERROR!!!!!!!!!!!!!!!!!!
+                          e.complete = true;
+                          e.garbageCollected = double.parse(value!);
+                          db.updateEvent(e);
+                        },
+                        validator: (String? value) {
+                          return (value == null || value.isEmpty)
+                              ? 'Event must have some garbage collected.'
+                              : null;
+                        },
+                        keyboardType: TextInputType.number,
+                        maxLength: null,
+                        maxLines: null,
+                      ),
+                    ), // num garbage collected
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TakePictureScreen(
+                              cameraCallback: (path) => afterPics.add(path)),
+                        ),
+                      ),
+                      child: ListTile(
+                        title: Text('Photo'),
+                        leading: const Icon(Icons.camera_alt),
+                      ),
+                    ), // add after pictures
+                    Divider(),
+                    Container(
+                        height: 200,
+                        child: PageView.builder(
+                            itemCount: afterPics.length,
+                            itemBuilder: (context, index) => Image.file(File(
+                                afterPics[index])))), // pictures shown
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                  onPressed: () async {
+                    // Validate returns true if the form is valid, or false otherwise.
+                    print('sending');
+                    if (_formKey.currentState!.validate()) {
+                      if (afterPics.length < 1) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('A photo is necessary')),
+                        );
+                        return;
+                      }
+                      if (e.complete == false) {
+                        e.complete = true;
+                        db.updateEvent(e);
+                        // ScaffoldMessenger.of(context).showSnackBar(
+                        //   SnackBar(
+                        //       content:
+                        //           Text('The event must be marked complete')),
+                        // );
+                        return;
+                      }
+                      _formKey.currentState!.save();
+
+                      for (var imagePath in afterPics) {
+                        db.uploadAfterImgToEvent(e, File(imagePath));
+                      }
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Text('update')),
+            ])));
   }
 }
 
@@ -1012,132 +1128,6 @@ class ClosedEventList extends StatelessWidget {
               itemCount: docs!.length,
               itemBuilder: (context, index) =>
                   EventTile(Event.fromSnapshot(docs[index])));
-        });
-  }
-}
-
-class EventMap extends StatefulWidget {
-  @override
-  State<EventMap> createState() => EventMapState();
-
-  EventMap(this.locId);
-  String locId;
-}
-
-class EventMapState extends State<EventMap> {
-  Completer<GoogleMapController> _controller = Completer();
-  EventMapState();
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: db.getLocByID(this.widget.locId),
-        builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-          if (snapshot.hasError) {
-            print(snapshot.error);
-          }
-          if (snapshot.hasData && !snapshot.data!.exists) {
-            return Text("Document does not exist");
-          }
-          if (snapshot.connectionState == ConnectionState.done) {
-            var data = snapshot.data!["geo"] as GeoPoint;
-            LatLng loc = LatLng(data.latitude, data.longitude);
-            return Scaffold(
-              body: GoogleMap(
-                mapType: MapType.hybrid,
-                markers: {
-                  Marker(alpha: 1, position: loc, markerId: MarkerId("example"))
-                },
-                initialCameraPosition: CameraPosition(
-                  target: loc,
-                  bearing: 0,
-                  tilt: 0,
-                  zoom: 20,
-                ),
-                onMapCreated: (GoogleMapController controller) {
-                  _controller.complete(controller);
-                },
-              ),
-              floatingActionButton: FloatingActionButton.extended(
-                onPressed: () async {
-                  print(loc);
-                  final GoogleMapController controller =
-                      await _controller.future;
-                  controller.animateCamera(CameraUpdate.newCameraPosition(
-                      CameraPosition(
-                          bearing: 0, target: loc, tilt: 0, zoom: 20)));
-                },
-                label: Text('To the lake!'),
-                icon: Icon(Icons.directions_boat),
-              ),
-            );
-          }
-          return LinearProgressIndicator();
-        });
-  }
-}
-
-class RecycleMap extends StatefulWidget {
-  @override
-  State<RecycleMap> createState() => RecycleMapState();
-
-  RecycleMap();
-}
-
-class RecycleMapState extends State<RecycleMap> {
-  Completer<GoogleMapController> _controller = Completer();
-  RecycleMapState();
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: db.getRecycleBins(),
-        builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-          if (snapshot.hasError) {
-            print(snapshot.error);
-          }
-          if (snapshot.hasData && !snapshot.data!.exists) {
-            return Text("Document does not exist");
-          }
-          if (snapshot.connectionState == ConnectionState.done) {
-            var pins = (snapshot.data!["loc"] as List<dynamic>).map((e) {
-              return Marker(
-                  alpha: 1,
-                  position: LatLng(e.latitude, e.longitude),
-                  markerId: MarkerId("example"));
-            }).toList();
-            var startLoc = pins[0].position;
-            print(pins);
-            LatLng loc = LatLng(0, 0);
-            return Scaffold(
-              body: GoogleMap(
-                mapType: MapType.hybrid,
-                markers: pins.toSet(),
-                initialCameraPosition: CameraPosition(
-                  target: startLoc,
-                  bearing: 0,
-                  tilt: 0,
-                  zoom: 17,
-                ),
-                onMapCreated: (GoogleMapController controller) {
-                  _controller.complete(controller);
-                },
-              ),
-              floatingActionButton: FloatingActionButton.extended(
-                onPressed: () async {
-                  print(loc);
-                  final GoogleMapController controller =
-                      await _controller.future;
-                  controller.animateCamera(CameraUpdate.newCameraPosition(
-                      CameraPosition(
-                          bearing: 0, target: startLoc, tilt: 0, zoom: 20)));
-                },
-                label: Text('To the initial position'),
-                icon: Icon(Icons.arrow_back_rounded),
-              ),
-            );
-          }
-          return LinearProgressIndicator();
         });
   }
 }
