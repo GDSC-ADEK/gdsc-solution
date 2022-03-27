@@ -456,7 +456,7 @@ class EventTile extends StatelessWidget {
         e.complete ? e.afterPictures[0] : e.beforePictures[0];
     return Container(
       color: e.organizers.contains(userID)
-          ? Colors.redAccent
+          ? Colors.lightBlueAccent
           : (e.participants.contains(userID) ? Colors.lightGreenAccent : null),
       child: Card(
         child: InkWell(
