@@ -88,17 +88,18 @@ setupNotifications() {
                 body: e.orgDate.toString(),
                 payload: 'Detail ${e.id}');
           }
+          //Ik gebruik voor deze twee ook de detail handler want WrapUpScreen heeft geen info over de event
           if (dateTime.isBefore(dateTime3)) {
             MyNotification().schedule(
                 title: 'Time to wrap up ${e.name}?',
                 body: e.orgDate.toString(),
                 dateTime: dateTime3,
-                payload: 'WrapUp ${e.id}');
+                payload: 'Detail ${e.id}');
           } else {
             MyNotification().schedule(
                 title: 'Time to wrap up ${e.name}?',
                 body: e.orgDate.toString(),
-                payload: 'WrapUp ${e.id}');
+                payload: 'Detail ${e.id}');
           }
         }
       });
@@ -678,7 +679,8 @@ class _EventDetailState extends State<EventDetail> {
                 Consumer<MyAppState>(builder: (context, state, _) {
                   bool joined = e.participants.contains(userID);
                   if (state.RequestNGO && !joined)
-                    return (e.organizers.contains(userID) &&  e.complete == false)
+                    return (e.organizers.contains(userID) &&
+                            e.complete == false)
                         ? ElevatedButton(
                             onPressed: () => Navigator.push(
                                 context,
@@ -967,8 +969,8 @@ class WrapUpScreen extends StatelessWidget {
                         height: 200,
                         child: PageView.builder(
                             itemCount: afterPics.length,
-                            itemBuilder: (context, index) => Image.file(File(
-                                afterPics[index])))), // pictures shown
+                            itemBuilder: (context, index) => Image.file(
+                                File(afterPics[index])))), // pictures shown
                   ],
                 ),
               ),
