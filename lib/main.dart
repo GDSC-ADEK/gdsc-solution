@@ -546,45 +546,51 @@ class _EventDetailState extends State<EventDetail> {
                       EventPanelList(e),
                       ListTile(title: Text('Day organized: ${e.orgDate}')),
                       ListTile(
-                          title:
-                              Text('Max number of attendees: $max_attendees')),
-                      ListTile(
                           title: Text(
                               'Current number of sign ups: ${e.participants.length}')),
-                      FutureBuilder<DocumentSnapshot>(
-                        future: db.getLocByID(e.location.id),
-                        builder: (BuildContext context,
-                            AsyncSnapshot<DocumentSnapshot> snapshot) {
-                          if (snapshot.hasError) {
-                            return Text("Something went wrong");
-                          }
-
-                          if (snapshot.hasData && !snapshot.data!.exists) {
-                            return Text(
-                                "Document \"${e.location.id}\" does not exist");
-                          }
-
-                          if (snapshot.connectionState ==
-                              ConnectionState.done) {
-                            Map<String, dynamic> data =
-                                snapshot.data!.data() as Map<String, dynamic>;
-                            return Container(
-                              height: 400,
-                              width: 400,
-                              child: EventMap(e.location.id),
-                              // child: MapSample(),
-                            );
-                          }
-
-                          return LinearProgressIndicator();
-                        },
-                      ),
                       ListTile(
                         title: Text('Phone number lead: $phone_number'),
                         subtitle: Text('(will get send to the participants)'),
                       ),
                     ],
                   ),
+                ),
+                FutureBuilder<DocumentSnapshot>(
+                  future: db.getLocByID(e.location.id),
+                  builder: (BuildContext context,
+                      AsyncSnapshot<DocumentSnapshot> snapshot) {
+                    if (snapshot.hasError) {
+                      return Text("Something went wrong");
+                    }
+
+                    if (snapshot.hasData && !snapshot.data!.exists) {
+                      return Text(
+                          "Document \"${e.location.id}\" does not exist");
+                    }
+
+                    if (snapshot.connectionState ==
+                        ConnectionState.done) {
+                      Map<String, dynamic> data =
+                      snapshot.data!.data() as Map<String, dynamic>;
+                      return RaisedButton(
+                        color: Colors.blue,
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => Scaffold(
+                                      appBar: AppBar(
+                                          title: Text("Back to event")),
+                                      body: EventMap(e.location.id))));
+                        },
+                        child: ListTile(
+                          title: Text("View location"),
+                        ),
+                      );
+                    }
+
+                    return LinearProgressIndicator();
+                  },
                 ),
                 Consumer<MyAppState>(builder: (context, state, _) {
                   bool joined = e.participants.contains(userID);
