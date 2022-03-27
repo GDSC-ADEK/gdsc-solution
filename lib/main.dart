@@ -28,6 +28,7 @@ import "models/location.dart";
 import "models/locationtype.dart";
 import 'models/events.dart';
 import 'models/role.dart';
+import 'map_widgets.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -373,6 +374,19 @@ class EventScreenDrawer extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => LocationPickerMap(
+                          (GeoPoint geo) {})));
+            },
+            child: ListTile(
+              title: Text('Event picker Map'),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => RecycleMap()));
             },
@@ -537,7 +551,7 @@ class _EventDetailState extends State<EventDetail> {
                       ListTile(
                           title: Text(
                               'Current number of sign ups: ${e.participants.length}')),
-                      /*FutureBuilder<DocumentSnapshot>(
+                      FutureBuilder<DocumentSnapshot>(
                         future: db.getLocByID(e.location.id),
                         builder: (BuildContext context,
                             AsyncSnapshot<DocumentSnapshot> snapshot) {
@@ -564,7 +578,7 @@ class _EventDetailState extends State<EventDetail> {
 
                           return LinearProgressIndicator();
                         },
-                      ),*/
+                      ),
                       ListTile(
                         title: Text('Phone number lead: $phone_number'),
                         subtitle: Text('(will get send to the participants)'),
@@ -623,7 +637,14 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
   final List<String> beforePictures = [];
   final List<String> picturesToUpload = [];
   DocumentReference<Object?>? location;
+  GeoPoint loc = GeoPoint(0, 0);
   final _formKey = GlobalKey<FormState>();
+  void locationCallback(GeoPoint geo) {
+    setState(() {
+      loc = geo;
+    });
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
@@ -659,10 +680,20 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                     ),
                     Divider(),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Scaffold(
+                                    appBar: AppBar(
+                                        title: Text("Back to event creation")),
+                                    body: LocationPickerMap(
+                                        locationCallback))));
+                      },
                       child: ListTile(
-                        title: Text('Choose location'),
-                        trailing: Text('Cultuurtuinlaan 23'),
+                        title: Text(((loc.latitude == 0) && (loc.latitude == 0))
+                            ? "Pick location"
+                            : "Select new location"),
                       ),
                     ),
                     Divider(),
@@ -927,132 +958,6 @@ class ClosedEventList extends StatelessWidget {
               itemCount: docs!.length,
               itemBuilder: (context, index) =>
                   EventTile(Event.fromSnapshot(docs[index])));
-        });
-  }
-}
-
-class EventMap extends StatefulWidget {
-  @override
-  State<EventMap> createState() => EventMapState();
-
-  EventMap(this.locId);
-  String locId;
-}
-
-class EventMapState extends State<EventMap> {
-  Completer<GoogleMapController> _controller = Completer();
-  EventMapState();
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: db.getLocByID(this.widget.locId),
-        builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-          if (snapshot.hasError) {
-            print(snapshot.error);
-          }
-          if (snapshot.hasData && !snapshot.data!.exists) {
-            return Text("Document does not exist");
-          }
-          if (snapshot.connectionState == ConnectionState.done) {
-            var data = snapshot.data!["geo"] as GeoPoint;
-            LatLng loc = LatLng(data.latitude, data.longitude);
-            return Scaffold(
-              body: GoogleMap(
-                mapType: MapType.hybrid,
-                markers: {
-                  Marker(alpha: 1, position: loc, markerId: MarkerId("example"))
-                },
-                initialCameraPosition: CameraPosition(
-                  target: loc,
-                  bearing: 0,
-                  tilt: 0,
-                  zoom: 20,
-                ),
-                onMapCreated: (GoogleMapController controller) {
-                  _controller.complete(controller);
-                },
-              ),
-              floatingActionButton: FloatingActionButton.extended(
-                onPressed: () async {
-                  print(loc);
-                  final GoogleMapController controller =
-                      await _controller.future;
-                  controller.animateCamera(CameraUpdate.newCameraPosition(
-                      CameraPosition(
-                          bearing: 0, target: loc, tilt: 0, zoom: 20)));
-                },
-                label: Text('To the lake!'),
-                icon: Icon(Icons.directions_boat),
-              ),
-            );
-          }
-          return LinearProgressIndicator();
-        });
-  }
-}
-
-class RecycleMap extends StatefulWidget {
-  @override
-  State<RecycleMap> createState() => RecycleMapState();
-
-  RecycleMap();
-}
-
-class RecycleMapState extends State<RecycleMap> {
-  Completer<GoogleMapController> _controller = Completer();
-  RecycleMapState();
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: db.getRecycleBins(),
-        builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-          if (snapshot.hasError) {
-            print(snapshot.error);
-          }
-          if (snapshot.hasData && !snapshot.data!.exists) {
-            return Text("Document does not exist");
-          }
-          if (snapshot.connectionState == ConnectionState.done) {
-            var pins = (snapshot.data!["loc"] as List<dynamic>).map((e) {
-              return Marker(
-                  alpha: 1,
-                  position: LatLng(e.latitude, e.longitude),
-                  markerId: MarkerId("example"));
-            }).toList();
-            var startLoc = pins[0].position;
-            print(pins);
-            LatLng loc = LatLng(0, 0);
-            return Scaffold(
-              body: GoogleMap(
-                mapType: MapType.hybrid,
-                markers: pins.toSet(),
-                initialCameraPosition: CameraPosition(
-                  target: startLoc,
-                  bearing: 0,
-                  tilt: 0,
-                  zoom: 17,
-                ),
-                onMapCreated: (GoogleMapController controller) {
-                  _controller.complete(controller);
-                },
-              ),
-              floatingActionButton: FloatingActionButton.extended(
-                onPressed: () async {
-                  print(loc);
-                  final GoogleMapController controller =
-                      await _controller.future;
-                  controller.animateCamera(CameraUpdate.newCameraPosition(
-                      CameraPosition(
-                          bearing: 0, target: startLoc, tilt: 0, zoom: 20)));
-                },
-                label: Text('To the initial position'),
-                icon: Icon(Icons.arrow_back_rounded),
-              ),
-            );
-          }
-          return LinearProgressIndicator();
         });
   }
 }
