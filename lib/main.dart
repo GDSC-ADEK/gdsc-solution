@@ -31,8 +31,8 @@ import 'models/role.dart';
 import 'map_widgets.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 import 'camera.dart';
 
@@ -238,24 +238,35 @@ class EventScreen extends StatelessWidget {
       drawer: EventScreenDrawer(),
       appBar: AppBar(
           title: Consumer<MyAppState>(
-              builder: (context, state, _) => Text(
-                    state.myevents ? 'My events!' : 'All events!',
-                    textScaleFactor: 1.5,
-                  ))),
+              builder: (context, state, _) {
+                String my_text = (state.RequestNGO)? "Organized" : "Joined";
+                return Text(
+                  state.myevents ? '$my_text events' : 'All events',
+                  textScaleFactor: 1.5,
+                );
+              })),
       body: Consumer<MyAppState>(builder: (context, state, _) {
         final retwidget = <Widget>[];
         retwidget.add(SizedBox(height: 20));
         if (state.myevents) {
-          retwidget.add(Expanded(
-            child: EventList(db.getEvents(
-                organizer: state.RequestNGO ? userID : null,
-                participant: userID)),
-          ));
+          if (state.RequestNGO){
+            retwidget.add(Expanded(
+              child: EventList(db.getEvents(
+                  organizer: userID)),
+            ));
+          }
+          else {
+            retwidget.add(Expanded(
+              child: EventList(db.getEvents(
+              participant: userID)),
+            ));
+          }
+
         } else {
           retwidget.add(
             Text(
-              'Open events!',
-              textScaleFactor: 1.5,
+              'Open events',
+              textScaleFactor: 1.25,
             ),
           );
           retwidget.add(Expanded(
@@ -264,12 +275,12 @@ class EventScreen extends StatelessWidget {
           retwidget.add(Divider());
           retwidget.add(
             Text(
-              'Closed events!',
-              textScaleFactor: 1.5,
+              'Closed events',
+              textScaleFactor: 1.25,
             ),
           );
           retwidget.add(Container(
-              height: 80,
+              height: 190,
               child: ClosedEventList(
                   db.getEvents(completed: true, published: true))));
 
@@ -326,7 +337,7 @@ class EventScreen extends StatelessWidget {
 
 class EventScreenDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
-    return Drawer(
+    return Container(width: 200, child: Drawer(
       child: ListView(
         children: [
           DrawerHeader(
@@ -334,7 +345,7 @@ class EventScreenDrawer extends StatelessWidget {
               color: Colors.blue,
             ),
             child: Text(
-              'View',
+              'Drawer',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -348,18 +359,22 @@ class EventScreenDrawer extends StatelessWidget {
               Provider.of<MyAppState>(context, listen: false).signOut();
             },
             child: ListTile(
-              title: Text('SignOut'),
+              leading: Icon(Icons.exit_to_app),
+              title: Text('Sign Out', ),
             ),
           ),
+          Divider(),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               Provider.of<MyAppState>(context, listen: false).myevents = false;
             },
             child: ListTile(
+              leading: Icon(Icons.event),
               title: Text('All events'),
             ),
           ),
+          Divider(),
           Consumer<MyAppState>(
             builder: (context, state, _) => TextButton(
               onPressed: () {
@@ -367,23 +382,12 @@ class EventScreenDrawer extends StatelessWidget {
                 state.myevents = true;
               },
               child: ListTile(
-                title: Text('My events'),
+                leading: Icon(Icons.event_available),
+                title: Text('${state.RequestNGO? "Organized" : "Joined"} events'),
               ),
             ),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          LocationPickerMap((GeoPoint geo) {})));
-            },
-            child: ListTile(
-              title: Text('Event picker Map'),
-            ),
-          ),
+          Divider(),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
@@ -391,12 +395,13 @@ class EventScreenDrawer extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => RecycleMap()));
             },
             child: ListTile(
-              title: Text('Recycle Bin Map'),
+              title: Text('Recycle Bins'),
+              leading: Icon(Icons.map),
             ),
           ),
         ],
       ),
-    );
+    ),);
   }
 }
 
@@ -453,6 +458,36 @@ class EventTile extends StatelessWidget {
       color: e.organizers.contains(userID)
           ? Colors.redAccent
           : (e.participants.contains(userID) ? Colors.lightGreenAccent : null),
+      child: Card(
+        child: InkWell(
+      splashColor: Colors.blue.withAlpha(30),
+      onTap: (() => Navigator.push(context,
+          MaterialPageRoute(builder: (context) => EventDetail(e)))),
+      child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
+              ListTile(
+                leading: dbPicture(pictureToDisplay),
+                title: Text('${e.name} on ${ DateFormat("dd MMM yy H:mm").format(e.orgDate)}'),
+                subtitle: Text((e.description.length < 300) ? '${e.description}': e.description.substring(0, 300) + "..." ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  const SizedBox(width: 8),
+                  Icon(Icons.people_alt),
+                  Text("${e.participants.length}"),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ]),
+      ),
+    ),
+    );
+    return Container(
+      color: e.organizers.contains(userID)
+          ? Colors.redAccent
+          : (e.participants.contains(userID) ? Colors.lightGreenAccent : null),
       child: ListTile(
         title: TextButton(
             onPressed: (() => Navigator.push(context,
@@ -463,13 +498,13 @@ class EventTile extends StatelessWidget {
             onPressed: (() => showDialog(
                 context: context,
                 builder: (context) => Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          EventPicturePages(e, before: !e.complete),
-                          ElevatedButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text('back'))
-                        ]))),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      EventPicturePages(e, before: !e.complete),
+                      ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('back'))
+                    ]))),
             child: dbPicture(pictureToDisplay)),
       ),
     );
@@ -544,10 +579,12 @@ class _EventDetailState extends State<EventDetail> {
                     children: [
                       EventPicturePages(e, before: !e.complete),
                       EventPanelList(e),
-                      ListTile(title: Text('Day organized: ${e.orgDate}')),
+                      ListTile(leading: Icon(Icons.date_range),title: Text('${DateFormat("dd MMM yy H:mm").format(e.orgDate)}')),
                       ListTile(
+                        leading: Icon(Icons.people),
                           title: Text(
-                              'Current number of sign ups: ${e.participants.length}')),
+                              '${e.participants.length} ${(e.participants.length == 1)? "person" : "people"} joined')),
+
                       ListTile(
                         title: Text('Phone number lead: $phone_number'),
                         subtitle: Text('(will get send to the participants)'),
@@ -936,67 +973,6 @@ class UnreachableScreen extends StatelessWidget {
   }
 }
 
-class LocTypeList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-        stream: db.getLTs(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('Something went wrong');
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return LinearProgressIndicator();
-          }
-          var docs = snapshot.data?.docs;
-          return ListView(
-            padding: const EdgeInsets.only(top: 20.0),
-            // 2
-            children: docs!.map((data) => LocTypeItem(context, data)).toList(),
-          );
-        });
-  }
-}
-
-Widget LocTypeItem(BuildContext context, DocumentSnapshot snapshot) {
-  // 4
-  final lt = LocationType.fromSnapshot(snapshot);
-  return ListTile(
-    title: Text(lt.name),
-    subtitle: Text(lt.id!),
-  );
-}
-
-class LocList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-        stream: db.getLocs(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('Something went wrong');
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return LinearProgressIndicator();
-          }
-          var docs = snapshot.data?.docs;
-          return ListView(
-            padding: const EdgeInsets.only(top: 20.0),
-            // 2
-            children: docs!.map((data) => LocItem(context, data)).toList(),
-          );
-        });
-  }
-}
-
-Widget LocItem(BuildContext context, DocumentSnapshot snapshot) {
-  // 4
-  final loc = Location.fromSnapshot(snapshot);
-  return ListTile(
-      title:
-          Text("GEO: ${loc.geo.latitude}, ${loc.geo.longitude}, ID: ${loc.id}"),
-      subtitle: Text("LT: ${loc.type.path}"));
-}
 
 class EventList extends StatelessWidget {
   final Stream<QuerySnapshot> stream;

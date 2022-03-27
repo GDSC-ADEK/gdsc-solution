@@ -32,7 +32,7 @@ class EventMapState extends State<EventMap> {
             LatLng loc = LatLng(data.latitude, data.longitude);
             return Scaffold(
               body: GoogleMap(
-                mapType: MapType.hybrid,
+                mapType: MapType.normal,
                 markers: {
                   Marker(alpha: 1, position: loc, markerId: MarkerId("example"))
                 },
@@ -40,7 +40,7 @@ class EventMapState extends State<EventMap> {
                   target: loc,
                   bearing: 0,
                   tilt: 0,
-                  zoom: 20,
+                  zoom: 19,
                 ),
                 onMapCreated: (GoogleMapController controller) {
                   _controller.complete(controller);
@@ -99,7 +99,7 @@ class RecycleMapState extends State<RecycleMap> {
             LatLng loc = LatLng(0, 0);
             return Scaffold(
               body: GoogleMap(
-                mapType: MapType.hybrid,
+                mapType: MapType.normal,
                 markers: pins.toSet(),
                 initialCameraPosition: CameraPosition(
                   target: startLoc,
@@ -118,7 +118,7 @@ class RecycleMapState extends State<RecycleMap> {
                       await _controller.future;
                   controller.animateCamera(CameraUpdate.newCameraPosition(
                       CameraPosition(
-                          bearing: 0, target: startLoc, tilt: 0, zoom: 20)));
+                          bearing: 0, target: startLoc, tilt: 0, zoom: 17)));
                 },
                 label: Text('To the initial position'),
                 icon: Icon(Icons.arrow_back_rounded),
