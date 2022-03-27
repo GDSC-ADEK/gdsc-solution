@@ -34,6 +34,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'camera.dart';
+import 'MyNotification.dart';
 
 void main() async {
   try {
@@ -48,6 +49,83 @@ void main() async {
 
 Fdatabase db = Fdatabase();
 String? userID;
+
+setupNotificationHandlers(BuildContext context) {
+  MyNotification().addHandler('WrapUp', (arg) async {
+    var e = Event.fromSnapshot(await db.getEventByID(arg));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => WrapUpScreen(e)));
+  });
+  MyNotification().addHandler('Detail', (arg) async {
+    var e = Event.fromSnapshot(await db.getEventByID(arg));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => EventDetail(e)));
+  });
+}
+
+setupNotifications() {
+  FirebaseAuth.instance.authStateChanges().listen((user) {
+    if (user != null) {
+      db
+          .getEvents(completed: false, published: true, organizer: user.uid)
+          .listen((event) {
+        for (var doc in event.docs) {
+          var e = Event.fromSnapshot(doc);
+          var dateTime = DateTime.now();
+          var dateTime2 =
+              DateTime(e.orgDate.year, e.orgDate.month, e.orgDate.day - 1, 12);
+          var dateTime3 = e.orgDate.add(Duration(hours: 3));
+          if (dateTime.isBefore(dateTime2)) {
+            MyNotification().schedule(
+                title: e.name,
+                body: e.orgDate.toString(),
+                dateTime: dateTime2,
+                payload: 'Detail ${e.id}');
+          } else if (dateTime.isBefore(e.orgDate)) {
+            MyNotification().schedule(
+                title: e.name,
+                body: e.orgDate.toString(),
+                payload: 'Detail ${e.id}');
+          }
+          if (dateTime.isBefore(dateTime3)) {
+            MyNotification().schedule(
+                title: 'Time to wrap up ${e.name}?',
+                body: e.orgDate.toString(),
+                dateTime: dateTime3,
+                payload: 'WrapUp ${e.id}');
+          } else {
+            MyNotification().schedule(
+                title: 'Time to wrap up ${e.name}?',
+                body: e.orgDate.toString(),
+                payload: 'WrapUp ${e.id}');
+          }
+        }
+      });
+      db
+          .getEvents(completed: false, published: true, participant: user.uid)
+          .listen((event) {
+        for (var doc in event.docs) {
+          var e = Event.fromSnapshot(doc);
+          var dateTime = DateTime.now();
+          var dateTime2 =
+              DateTime(e.orgDate.year, e.orgDate.month, e.orgDate.day - 1, 12);
+          if (dateTime.isBefore(dateTime2)) {
+            MyNotification().schedule(
+                title: e.name,
+                body: e.orgDate.toString(),
+                dateTime: dateTime2,
+                payload: 'Detail ${e.id}');
+          } else if (dateTime.isBefore(e.orgDate)) {
+            MyNotification().schedule(
+                title: e.name,
+                body: e.orgDate.toString(),
+                payload: 'Detail ${e.id}');
+          }
+        }
+      });
+    }
+  });
+}
 
 class MyAppState extends ChangeNotifier {
   bool _myevents = false;
@@ -117,118 +195,124 @@ class MyApp extends StatelessWidget {
 }
 
 class LoginScreen extends StatefulWidget {
+  LoginScreen() {
+    setupNotifications();
+  }
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   bool RequestNGO = false;
-  Widget build(BuildContext context) => Consumer<MyAppState>(
-        builder: (context, state, _) => StreamBuilder(
-          stream: FirebaseAuth.instance.authStateChanges(),
-          builder: (context, AsyncSnapshot<User?> snapshot) {
-            if (snapshot.hasError) {
-              return Text("Error in authentication");
-            }
+  Widget build(BuildContext context) {
+    setupNotificationHandlers(context);
+    return Consumer<MyAppState>(
+      builder: (context, state, _) => StreamBuilder(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, AsyncSnapshot<User?> snapshot) {
+          if (snapshot.hasError) {
+            return Text("Error in authentication");
+          }
 
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return LinearProgressIndicator();
-            }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
 
-            var user = snapshot.data;
-            if (user != null) {
-              db.snapshotsRoleByID('organizer').listen((event) {
-                var value = Role.fromSnapshot(event).members.contains(user.uid);
-                if (state.RequestNGO != value) state.RequestNGO = value;
-              });
-              userID = user.uid;
-              return FutureBuilder<DocumentSnapshot>(
-                future: db.getRoleByID('organizer'),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) return Text('Error loading roles');
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    return LinearProgressIndicator();
-                  if (!snapshot.hasData || snapshot.data == null)
-                    return Text('Role snapshot has no data');
-                  print(snapshot.data!.toString());
-                  final r = Role.fromSnapshot(snapshot.data!);
-                  if (RequestNGO && !r.members.contains(userID)) {
-                    String? encodeQueryParameters(Map<String, String> params) {
-                      return params.entries
-                          .map((e) =>
-                              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-                          .join('&');
-                    }
-
-                    final Uri emailLaunchUri = Uri(
-                      scheme: 'mailto',
-                      path: 'uvsgdsc@gmail.com',
-                      query: encodeQueryParameters(<String, String>{
-                        'subject': 'Request NGO status',
-                        'body':
-                            'Hello, I am ${user.displayName} and I would like to request NGO status.\nUSER ID: ${user.uid}'
-                      }),
-                    );
-
-                    launch(emailLaunchUri.toString());
-                    return EventScreen();
+          var user = snapshot.data;
+          if (user != null) {
+            db.snapshotsRoleByID('organizer').listen((event) {
+              var value = Role.fromSnapshot(event).members.contains(user.uid);
+              if (state.RequestNGO != value) state.RequestNGO = value;
+            });
+            userID = user.uid;
+            return FutureBuilder<DocumentSnapshot>(
+              future: db.getRoleByID('organizer'),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) return Text('Error loading roles');
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  return LinearProgressIndicator();
+                if (!snapshot.hasData || snapshot.data == null)
+                  return Text('Role snapshot has no data');
+                print(snapshot.data!.toString());
+                final r = Role.fromSnapshot(snapshot.data!);
+                if (RequestNGO && !r.members.contains(userID)) {
+                  String? encodeQueryParameters(Map<String, String> params) {
+                    return params.entries
+                        .map((e) =>
+                            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+                        .join('&');
                   }
-                  return EventScreen();
-                },
-              );
-            }
 
-            return Scaffold(
-              appBar: AppBar(title: Text('Login')),
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      child: Text('Sign in'),
-                      onPressed: () async {
-                        //Ik moet gaan kijken hoe try catch blocks werken
-                        //TODO try and catch werken niet met Future zonder await gerbuik in de plaats callbacks
-                        try {
-                          /*
+                  final Uri emailLaunchUri = Uri(
+                    scheme: 'mailto',
+                    path: 'uvsgdsc@gmail.com',
+                    query: encodeQueryParameters(<String, String>{
+                      'subject': 'Request NGO status',
+                      'body':
+                          'Hello, I am ${user.displayName} and I would like to request NGO status.\nUSER ID: ${user.uid}'
+                    }),
+                  );
+
+                  launch(emailLaunchUri.toString());
+                  return EventScreen();
+                }
+                return EventScreen();
+              },
+            );
+          }
+
+          return Scaffold(
+            appBar: AppBar(title: Text('Login')),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    child: Text('Sign in'),
+                    onPressed: () async {
+                      //Ik moet gaan kijken hoe try catch blocks werken
+                      //TODO try and catch werken niet met Future zonder await gerbuik in de plaats callbacks
+                      try {
+                        /*
                           Canceling google sign in causese exception
                           Apparently only a problem in release mode
                           https://stackoverflow.com/questions/59561486/canceling-google-sign-in-cause-an-exception-in-flutter
                           */
-                          await state.signInWithGoogle();
-                          //.signInAnonymously();
-                        } on FirebaseAuthException catch (e) {
-                          showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                  title: Text('Login error'),
-                                  content: Text(e.code)));
-                        }
-                      },
-                    ),
-                    ElevatedButton(
-                      child: Text('Request NGO status'),
-                      onPressed: () async {
-                        try {
-                          await state.signInWithGoogle();
-                          //.signInAnonymously();
-                        } on FirebaseAuthException catch (e) {
-                          showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                  title: Text('Login error'),
-                                  content: Text(e.code)));
-                        }
-                        state.RequestNGO = true;
-                      },
-                    ),
-                  ],
-                ),
+                        await state.signInWithGoogle();
+                        //.signInAnonymously();
+                      } on FirebaseAuthException catch (e) {
+                        showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                                title: Text('Login error'),
+                                content: Text(e.code)));
+                      }
+                    },
+                  ),
+                  ElevatedButton(
+                    child: Text('Request NGO status'),
+                    onPressed: () async {
+                      try {
+                        await state.signInWithGoogle();
+                        //.signInAnonymously();
+                      } on FirebaseAuthException catch (e) {
+                        showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                                title: Text('Login error'),
+                                content: Text(e.code)));
+                      }
+                      state.RequestNGO = true;
+                    },
+                  ),
+                ],
               ),
-            );
-          },
-        ),
-      );
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class EventScreen extends StatelessWidget {
@@ -646,10 +730,11 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                         var time = await showTimePicker(
                             context: context,
                             initialTime: TimeOfDay(hour: 0, minute: 0));
-                        setState((() {
-                          orgDate = DateTime(date!.year, date.month, date.day,
-                              time!.hour, time.minute);
-                        }));
+                        if (date != null && time != null)
+                          setState((() {
+                            orgDate = DateTime(date.year, date.month, date.day,
+                                time.hour, time.minute);
+                          }));
                       },
                       child: ListTile(
                         title: Text('Time and date'),
