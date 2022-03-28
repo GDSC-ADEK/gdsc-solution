@@ -586,7 +586,12 @@ class EventTile extends StatelessWidget {
               MaterialPageRoute(builder: (context) => EventDetail(e)))),
           child: Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
             ListTile(
-              leading: Container(child: dbPicture(pictureToDisplay), width: 75,height: 75, padding: EdgeInsets.all(0),),
+              leading: Container(
+                child: dbPicture(pictureToDisplay),
+                width: 75,
+                height: 75,
+                padding: EdgeInsets.all(0),
+              ),
               title: Text(
                   '${e.name} on ${DateFormat("dd MMM yy H:mm").format(e.orgDate)}'),
               subtitle: Text((e.description.length < 150)
@@ -646,13 +651,11 @@ class EventDetail extends StatefulWidget {
 class _EventDetailState extends State<EventDetail> {
   final int max_attendees = 20;
 
-
   Widget build(BuildContext context) {
     //Event e = Event.fromSnapshot(await db.getEventByID(widget.e.id));
     return StreamBuilder(
         stream: db.snapshotsEventByID(this.widget.e.id!),
         builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-
           if (snapshot.hasError) {
             return Text("Something went wrong");
           }
@@ -927,18 +930,25 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                             .add(await db.uploadImage(File(imagePath)));
                       }
                       Event e = Event(
-                          name!,
-                          description!,
-                          false,
-                          true,
-                          DateTime.now(),
-                          orgDate!,
-                          [userID!],
-                          [],
-                          picturesToUpload,
-                          [],
-                          0,
-                          location!);
+                        name!,
+                        'TEST UPLOAD FROM APP: ' + description!,
+                        false,
+                        true,
+                        DateTime.now(),
+                        orgDate!,
+                        [userID!],
+                        [],
+                        picturesToUpload,
+                        [],
+                        0,
+                        location!,
+                        '',
+                        false,
+                        false,
+                        0,
+                        0,
+                        false,
+                      );
                       db.addEvent(e);
                       Navigator.pop(context);
                     }
@@ -964,12 +974,31 @@ class StatisticsScreen extends StatelessWidget {
 
 //TODO Finish WrapUpScreen
 //TODO WrapUp before orgdate is equal to cancel?
-class WrapUpScreen extends StatelessWidget {
-  Event e;
-  List<String> afterPics = [];
-  List<String> picturesToUpload = [];
+class WrapUpScreen extends StatefulWidget {
+  final Event e;
+
   WrapUpScreen(this.e);
+
+  @override
+  State<WrapUpScreen> createState() => _WrapUpScreenState();
+}
+
+//TODO fields lose information when switching to camera screen
+class _WrapUpScreenState extends State<WrapUpScreen> {
+  List<String> afterPics = [];
+
+  List<String> picturesToUpload = [];
+
   final _formKey = GlobalKey<FormState>();
+
+  Event? e;
+
+  @override
+  void initState() {
+    super.initState();
+    e = widget.e;
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
@@ -989,9 +1018,7 @@ class WrapUpScreen extends StatelessWidget {
                         ),
                         onSaved: (String? value) {
                           // POTENTIAL ERROR!!!!!!!!!!!!!!!!!!
-                          e.complete = true;
-                          e.garbageCollected = double.parse(value!);
-                          db.updateEvent(e);
+                          e!.garbageCollected = double.parse(value!);
                         },
                         validator: (String? value) {
                           return (value == null || value.isEmpty)
@@ -1003,6 +1030,87 @@ class WrapUpScreen extends StatelessWidget {
                         maxLines: null,
                       ),
                     ), // num garbage collected
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'What types of waste were collected?',
+                        ),
+                        onSaved: (String? value) {
+                          e!.wasteTypes = value!;
+                        },
+                        validator: (String? value) {
+                          return (value == null || value.isEmpty)
+                              ? 'You must specify what types waste have been collected.'
+                              : null;
+                        },
+                      ),
+                    ), // waste types
+                    CheckboxListTile(
+                        title: Text(
+                            "Was there a clean up day held at the location before?"),
+                        value: e!.firstTimeAtLoc,
+                        onChanged: (value) => setState(() => e!.firstTimeAtLoc =
+                            value!)), // first time at location
+                    CheckboxListTile(
+                        title: Text("Was the waste recycled?"),
+                        value: e!.recycled,
+                        onChanged: (value) =>
+                            setState(() => e!.recycled = value!)),
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText:
+                              'In case the waste was recycled, how many plastic bottles were disposed in the recycle bins?',
+                        ),
+                        onSaved: (String? value) {
+                          if (!e!.recycled) return;
+                          setState(
+                              () => e!.garbageCollected = int.parse(value!));
+                        },
+                        validator: (String? value) {
+                          if (!e!.recycled) return null;
+                          if (value != null)
+                            return int.tryParse(value) == null
+                                ? 'Value must be an integer'
+                                : null;
+                          return (value == null || value.isEmpty)
+                              ? 'You must specify how many plastic bottles were recycled.'
+                              : null;
+                        },
+                        enabled: e!.recycled,
+                        keyboardType: TextInputType.number,
+                        maxLength: null,
+                        maxLines: null,
+                      ),
+                    ),
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'How many volunteers were present?',
+                        ),
+                        onSaved: (String? value) {
+                          setState(() => e!.numPresent = int.parse(value!));
+                        },
+                        validator: (String? value) {
+                          if (value != null)
+                            return int.tryParse(value) == null
+                                ? 'Value must be an integer'
+                                : null;
+                          return (value == null || value.isEmpty)
+                              ? 'You must specify how many volunteers were present.'
+                              : null;
+                        },
+                        keyboardType: TextInputType.number,
+                        maxLength: null,
+                        maxLines: null,
+                      ),
+                    ),
+                    CheckboxListTile(
+                        title: Text(
+                            "Was there a collaboration with an environmental organisation?"),
+                        value: e!.collabWithOrg,
+                        onChanged: (value) =>
+                            setState(() => e!.collabWithOrg = value!)),
                     TextButton(
                       onPressed: () => Navigator.push(
                         context,
@@ -1037,20 +1145,12 @@ class WrapUpScreen extends StatelessWidget {
                         );
                         return;
                       }
-                      if (e.complete == false) {
-                        e.complete = true;
-                        db.updateEvent(e);
-                        // ScaffoldMessenger.of(context).showSnackBar(
-                        //   SnackBar(
-                        //       content:
-                        //           Text('The event must be marked complete')),
-                        // );
-                        return;
-                      }
                       _formKey.currentState!.save();
+                      e!.complete = true;
+                      db.updateEvent(e!);
 
                       for (var imagePath in afterPics) {
-                        db.uploadAfterImgToEvent(e, File(imagePath));
+                        db.uploadAfterImgToEvent(e!, File(imagePath));
                       }
                       Navigator.pop(context);
                     }
