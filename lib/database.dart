@@ -207,18 +207,18 @@ class Fdatabase {
     File file = File(_appDir!.path + "/" + imagePath);
 
     if (file.existsSync()) {
-      return Image.file(file);
+      return Image.file(file, fit: BoxFit.cover,alignment: Alignment.center,);
     }
     file.create(recursive: true);
     try {
       var img =
           await store.FirebaseStorage.instance.ref(imagePath).writeToFile(file);
-      return Image.file(file);
+      return Image.file(file, fit: BoxFit.cover, alignment: Alignment.center);
     } catch (e) {
       print(
           "---------------error in getImage--------------------------------------");
       print(e);
-      return await Image.memory(Uint8List(0));
+      return await Image.memory(Uint8List(0), fit: BoxFit.cover);
     }
   }
 

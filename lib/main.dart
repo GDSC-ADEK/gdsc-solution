@@ -228,6 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
               if (state.RequestNGO != value) state.RequestNGO = value;
             });
             userID = user.uid;
+            var email = user.email;
             return FutureBuilder<DocumentSnapshot>(
               future: db.getRoleByID('organizer'),
               builder: (context, snapshot) {
@@ -242,51 +243,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   String? encodeQueryParameters(Map<String, String> params) {
                     return params.entries
                         .map((e) =>
-                            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+                    '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
                         .join('&');
                   }
-            var user = snapshot.data;
-            if (user != null) {
-              db.snapshotsRoleByID('organizer').listen((event) {
-                var value = Role.fromSnapshot(event).members.contains(user.uid);
-                if (state.RequestNGO != value) state.RequestNGO = value;
-              });
-              userID = user.uid;
-              email = user.email;
-              return FutureBuilder<DocumentSnapshot>(
-                future: db.getRoleByID('organizer'),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) return Text('Error loading roles');
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    return LinearProgressIndicator();
-                  if (!snapshot.hasData || snapshot.data == null)
-                    return Text('Role snapshot has no data');
-                  print(snapshot.data!.toString());
-                  final r = Role.fromSnapshot(snapshot.data!);
-                  if (RequestNGO && !r.members.contains(userID)) {
-                    String? encodeQueryParameters(Map<String, String> params) {
-                      return params.entries
-                          .map((e) =>
-                              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-                          .join('&');
-                    }
 
-                    final Uri emailLaunchUri = Uri(
-                      scheme: 'mailto',
-                      path: 'uvsgdsc@gmail.com',
-                      query: encodeQueryParameters(<String, String>{
-                        'subject': 'Request NGO status',
-                        'body':
-                            'Hello, I am ${user.email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
-                      }),
-                    );
                   final Uri emailLaunchUri = Uri(
                     scheme: 'mailto',
                     path: 'uvsgdsc@gmail.com',
                     query: encodeQueryParameters(<String, String>{
                       'subject': 'Request NGO status',
                       'body':
-                          'Hello, I am ${user.displayName} and I would like to request NGO status.\nUSER ID: ${user.uid}'
+                      'Hello, I am ${email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
                     }),
                   );
 
@@ -792,6 +759,7 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
   }
 
   Widget build(BuildContext context) {
+    print(loc.longitude);
     return Scaffold(
         appBar: AppBar(
           title: Text('Organize'),
@@ -838,9 +806,9 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                                         LocationPickerMap(locationCallback))));
                       },
                       child: ListTile(
-                        title: Text(((loc.latitude == 0) && (loc.latitude == 0))
+                        title: Text((loc == GeoPoint(0,0))
                             ? "Pick location"
-                            : "Select new location"),
+                            : "Picked location (lt:${loc.latitude.toStringAsFixed(3)},lng: ${loc.longitude.toStringAsFixed(3)}) (Change)"),
                       ),
                     ),
                     Divider(),
@@ -919,11 +887,11 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                         return;
                       }
                       _formKey.currentState!.save();
+                      var cleanup = await db.getLTByID("Cleanup");
+                      Location location = Location(loc, cleanup.reference);
 
                       //tempory location randomly taken from the database
-                      location = FirebaseFirestore.instance
-                          .collection('Locations')
-                          .doc();
+                      var location_snapshot = await db.addLoc(location);
 
                       for (var imagePath in beforePictures) {
                         picturesToUpload
@@ -941,7 +909,7 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                         picturesToUpload,
                         [],
                         0,
-                        location!,
+                        location_snapshot,
                         '',
                         false,
                         false,

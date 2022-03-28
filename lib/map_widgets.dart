@@ -74,7 +74,14 @@ class RecycleMap extends StatefulWidget {
 
 class RecycleMapState extends State<RecycleMap> {
   Completer<GoogleMapController> _controller = Completer();
-  RecycleMapState();
+  BitmapDescriptor? icon = null;
+  RecycleMapState(){
+    BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(size: Size(10, 10)), 'assets/map-trashbin.png')
+        .then((onValue) {
+      icon = onValue;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +98,7 @@ class RecycleMapState extends State<RecycleMap> {
             var pins = (snapshot.data!["loc"] as List<dynamic>).map((e) {
               return Marker(
                   alpha: 1,
+                  icon: icon!,
                   position: LatLng(e.latitude, e.longitude),
                   markerId: MarkerId("example"));
             }).toList();

@@ -129,7 +129,7 @@ Map<String, Object?> eventToJson(Event e) {
     "recycled": e.recycled,
     "numPlasticBottles": e.numPlasticBottles,
     "numPresent": e.numPresent,
-    "collabWithOr": e.collabWithOrg
+    "collabWithOrg": e.collabWithOrg
   };
 }
 
