@@ -49,6 +49,7 @@ void main() async {
 
 Fdatabase db = Fdatabase();
 String? userID;
+String? email;
 
 class MyAppState extends ChangeNotifier {
   bool _myevents = false;
@@ -143,6 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (state.RequestNGO != value) state.RequestNGO = value;
               });
               userID = user.uid;
+              email = user.email;
               return FutureBuilder<DocumentSnapshot>(
                 future: db.getRoleByID('organizer'),
                 builder: (context, snapshot) {
@@ -167,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       query: encodeQueryParameters(<String, String>{
                         'subject': 'Request NGO status',
                         'body':
-                            'Hello, I am ${user.displayName} and I would like to request NGO status.\nUSER ID: ${user.uid}'
+                            'Hello, I am ${user.email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
                       }),
                     );
 
@@ -274,7 +276,7 @@ class EventScreen extends StatelessWidget {
             ),
           );
           retwidget.add(Container(
-              height: 190,
+              height: 170,
               child: ClosedEventList(
                   db.getEvents(completed: true, published: true))));
 
@@ -466,12 +468,17 @@ class EventTile extends StatelessWidget {
               MaterialPageRoute(builder: (context) => EventDetail(e)))),
           child: Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
             ListTile(
-              leading: dbPicture(pictureToDisplay),
+              leading: Container(
+                child: dbPicture(pictureToDisplay),
+                width: 75,
+                height: 75,
+                padding: EdgeInsets.all(0),
+              ),
               title: Text(
                   '${e.name} on ${DateFormat("dd MMM yy H:mm").format(e.orgDate)}'),
-              subtitle: Text((e.description.length < 300)
+              subtitle: Text((e.description.length < 150)
                   ? '${e.description}'
-                  : e.description.substring(0, 300) + "..."),
+                  : e.description.substring(0, 149) + "..."),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -484,30 +491,6 @@ class EventTile extends StatelessWidget {
             ),
           ]),
         ),
-      ),
-    );
-    return Container(
-      color: e.organizers.contains(userID)
-          ? Colors.redAccent
-          : (e.participants.contains(userID) ? Colors.lightGreenAccent : null),
-      child: ListTile(
-        title: TextButton(
-            onPressed: (() => Navigator.push(context,
-                MaterialPageRoute(builder: (context) => EventDetail(e)))),
-            child: Text('${e.name}')),
-        subtitle: Text('Date: ${e.orgDate}'),
-        leading: TextButton(
-            onPressed: (() => showDialog(
-                context: context,
-                builder: (context) => Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          EventPicturePages(e, before: !e.complete),
-                          ElevatedButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text('back'))
-                        ]))),
-            child: dbPicture(pictureToDisplay)),
       ),
     );
   }
@@ -550,8 +533,6 @@ class EventDetail extends StatefulWidget {
 class _EventDetailState extends State<EventDetail> {
   final int max_attendees = 20;
 
-  final String phone_number = '+5978855645';
-
   Widget build(BuildContext context) {
     //Event e = Event.fromSnapshot(await db.getEventByID(widget.e.id));
     return StreamBuilder(
@@ -590,8 +571,8 @@ class _EventDetailState extends State<EventDetail> {
                           title: Text(
                               '${e.participants.length} ${(e.participants.length == 1) ? "person" : "people"} joined')),
                       ListTile(
-                        title: Text('Phone number lead: $phone_number'),
-                        subtitle: Text('(will get send to the participants)'),
+                        title: Text('$email'),
+                        leading: Icon(Icons.email),
                       ),
                     ],
                   ),
