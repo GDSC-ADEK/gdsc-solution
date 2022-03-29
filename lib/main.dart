@@ -178,6 +178,7 @@ class MyApp extends StatelessWidget {
         create: (context) => MyAppState(),
         //child: MaterialApp(home: LoginScreen()),
         child: MaterialApp(
+          debugShowCheckedModeBanner: false,
           theme: ThemeData(
             primaryColor: Colors.green,
             primarySwatch: Colors.green
