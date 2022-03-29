@@ -25,7 +25,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'database.dart';
 import "models/location.dart";
-import "models/locationtype.dart";
 import 'models/events.dart';
 import 'models/role.dart';
 import 'map_widgets.dart';
@@ -179,6 +178,10 @@ class MyApp extends StatelessWidget {
         create: (context) => MyAppState(),
         //child: MaterialApp(home: LoginScreen()),
         child: MaterialApp(
+          theme: ThemeData(
+            primaryColor: Colors.green,
+            primarySwatch: Colors.green
+          ),
             home: FutureBuilder(
           future:
               Firebase.initializeApp(options: DefaultFirebaseOptions.android),
@@ -237,13 +240,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   return LinearProgressIndicator();
                 if (!snapshot.hasData || snapshot.data == null)
                   return Text('Role snapshot has no data');
-                print(snapshot.data!.toString());
                 final r = Role.fromSnapshot(snapshot.data!);
                 if (RequestNGO && !r.members.contains(userID)) {
                   String? encodeQueryParameters(Map<String, String> params) {
                     return params.entries
                         .map((e) =>
-                    '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+                            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
                         .join('&');
                   }
 
@@ -253,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     query: encodeQueryParameters(<String, String>{
                       'subject': 'Request NGO status',
                       'body':
-                      'Hello, I am ${email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
+                          'Hello, I am ${email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
                     }),
                   );
 
@@ -425,7 +427,7 @@ class EventScreenDrawer extends StatelessWidget {
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.blue,
+                color: Colors.green,
               ),
               child: Text(
                 'Drawer',
@@ -678,8 +680,7 @@ class _EventDetailState extends State<EventDetail> {
                     if (snapshot.connectionState == ConnectionState.done) {
                       Map<String, dynamic> data =
                           snapshot.data!.data() as Map<String, dynamic>;
-                      return RaisedButton(
-                        color: Colors.blue,
+                      return ElevatedButton(
                         onPressed: () {
                           Navigator.push(
                               context,
@@ -759,7 +760,6 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
   }
 
   Widget build(BuildContext context) {
-    print(loc.longitude);
     return Scaffold(
         appBar: AppBar(
           title: Text('Organize'),
@@ -806,7 +806,7 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                                         LocationPickerMap(locationCallback))));
                       },
                       child: ListTile(
-                        title: Text((loc == GeoPoint(0,0))
+                        title: Text((loc == GeoPoint(0, 0))
                             ? "Pick location"
                             : "Picked location (lt:${loc.latitude.toStringAsFixed(3)},lng: ${loc.longitude.toStringAsFixed(3)}) (Change)"),
                       ),
@@ -872,7 +872,6 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
               ElevatedButton(
                   onPressed: () async {
                     // Validate returns true if the form is valid, or false otherwise.
-                    print('sending');
                     if (_formKey.currentState!.validate()) {
                       if (beforePictures.length < 1) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -899,7 +898,7 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                       }
                       Event e = Event(
                         name!,
-                        'TEST UPLOAD FROM APP: ' + description!,
+                        description!,
                         false,
                         true,
                         DateTime.now(),
@@ -927,16 +926,62 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
 }
 
 class StatisticsScreen extends StatelessWidget {
+  StatisticsScreen();
+
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Statistics')),
-      body: Center(
-        child: Text(
-          'Statistics',
-          textScaleFactor: 4,
-        ),
-      ),
-    );
+    return StreamBuilder<QuerySnapshot>(
+        stream: db.getEvents(completed: true, published: true),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text("Something went wrong");
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          num totalVolunteers = 0;
+          num totalWasteCollected = 0;
+          num totalEventsCompleted = 0;
+          num plasticBottlesCollected = 0;
+          var docs = snapshot.data?.docs;
+
+          for (var esnapshot in docs!) {
+            var event = Event.fromSnapshot(esnapshot);
+            totalVolunteers += event.participants.length;
+            totalWasteCollected += event.garbageCollected;
+            plasticBottlesCollected += event.numPlasticBottles;
+            totalEventsCompleted += 1;
+          }
+          return Scaffold(
+            appBar: AppBar(title: Text('Statistics')),
+            body: Center(
+                child: ListView(
+              children: [
+                Center(
+                  child: ListTile(
+                    leading: Icon(Icons.event_available),
+                    title: Text("Total events completed"),
+                    subtitle: Text(totalEventsCompleted.toString()),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.restore_from_trash),
+                  title: Text("Total waste collected"),
+                  subtitle: Text(totalWasteCollected.toString() + " Kg"),
+                ),
+                ListTile(
+                  leading: Icon(Icons.restore_from_trash),
+                  title: Text("Total plastic bottles collected"),
+                  subtitle: Text(plasticBottlesCollected.toString()),
+                ),
+                ListTile(
+                  leading: Icon(Icons.people),
+                  title: Text("Total volunteers participated"),
+                  subtitle: Text(totalVolunteers.toString()),
+                )
+              ],
+            )),
+          );
+        });
   }
 }
 
@@ -1105,7 +1150,6 @@ class _WrapUpScreenState extends State<WrapUpScreen> {
               ElevatedButton(
                   onPressed: () async {
                     // Validate returns true if the form is valid, or false otherwise.
-                    print('sending');
                     if (_formKey.currentState!.validate()) {
                       if (afterPics.length < 1) {
                         ScaffoldMessenger.of(context).showSnackBar(
