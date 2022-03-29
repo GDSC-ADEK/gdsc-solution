@@ -16,7 +16,13 @@ class Event {
       this.beforePictures,
       this.afterPictures,
       this.garbageCollected,
-      this.location);
+      this.location,
+      this.wasteTypes,
+      this.firstTimeAtLoc,
+      this.recycled,
+      this.numPlasticBottles,
+      this.numPresent,
+      this.collabWithOrg);
   String name;
   String description;
   bool complete;
@@ -31,6 +37,15 @@ class Event {
   DocumentReference location;
   String? id;
   Map<String, String>? changes = null;
+  String
+      wasteTypes; // What type of waste was collected? (metal, plastic, electronics, glas, etc)
+  bool firstTimeAtLoc; // Was there a clean up day held at the location before?
+  bool recycled; // Was the waste recycled?
+  int numPlasticBottles; // In case the waste was recycled, how many plastic bottles were disposed in the recycle bins?
+  int numPresent; // How many volunteers were present?
+  bool
+      collabWithOrg; // Was there a collaboration with an environmental organisation?
+
   void toggleParticipation(String uuid) {
     if (changes == null) {
       changes = {};
@@ -74,18 +89,25 @@ Event eventFromJson(Map<String, Object?> json) {
   }
   var loc = json["location"] as DocumentReference;
   return Event(
-      json["name"] as String,
-      json["description"] as String,
-      json["complete"] as bool,
-      json["publish"] as bool,
-      create,
-      org,
-      (json["organizers"] as List<dynamic>).cast<String>(),
-      (json["participants"] as List<dynamic>).cast<String>(),
-      (json["beforePictures"] as List<dynamic>).cast<String>(),
-      (json["afterPictures"] as List<dynamic>).cast<String>(),
-      json["garbageCollected"] as num,
-      loc);
+    json["name"] as String,
+    json["description"] as String,
+    json["complete"] as bool,
+    json["publish"] as bool,
+    create,
+    org,
+    (json["organizers"] as List<dynamic>).cast<String>(),
+    (json["participants"] as List<dynamic>).cast<String>(),
+    (json["beforePictures"] as List<dynamic>).cast<String>(),
+    (json["afterPictures"] as List<dynamic>).cast<String>(),
+    json["garbageCollected"] as num,
+    loc,
+    json["wasteTypes"] as String,
+    json['firstTimeAtLoc'] as bool,
+    json['recycled'] as bool,
+    json['numPlasticBottles'] as int,
+    json['numPresent'] as int,
+    json['collabWithOrg'] as bool,
+  );
 }
 
 Map<String, Object?> eventToJson(Event e) {
@@ -101,7 +123,13 @@ Map<String, Object?> eventToJson(Event e) {
     "beforePictures": e.beforePictures,
     "afterPictures": e.afterPictures,
     "garbageCollected": e.garbageCollected,
-    "location": e.location
+    "location": e.location,
+    "wasteTypes": e.wasteTypes,
+    "firstTimeAtLoc": e.firstTimeAtLoc,
+    "recycled": e.recycled,
+    "numPlasticBottles": e.numPlasticBottles,
+    "numPresent": e.numPresent,
+    "collabWithOrg": e.collabWithOrg
   };
 }
 

@@ -25,14 +25,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'database.dart';
 import "models/location.dart";
-import "models/locationtype.dart";
 import 'models/events.dart';
 import 'models/role.dart';
 import 'map_widgets.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 import 'camera.dart';
 import 'MyNotification.dart';
@@ -50,6 +49,7 @@ void main() async {
 
 Fdatabase db = Fdatabase();
 String? userID;
+String? email;
 
 setupNotificationHandlers(BuildContext context) {
   MyNotification().addHandler('WrapUp', (arg) async {
@@ -131,7 +131,7 @@ setupNotifications() {
 
 class MyAppState extends ChangeNotifier {
   bool _myevents = false;
-  bool _RequestNGO = false;
+  bool _isNGO = false;
 
   bool get myevents => _myevents;
   set myevents(bool value) {
@@ -139,9 +139,9 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get RequestNGO => _RequestNGO;
-  set RequestNGO(bool value) {
-    _RequestNGO = value;
+  bool get isNGO => _isNGO;
+  set isNGO(bool value) {
+    _isNGO = value;
     notifyListeners();
   }
 
@@ -168,7 +168,7 @@ class MyAppState extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    await GoogleSignIn().disconnect();
+    if (await GoogleSignIn().isSignedIn()) await GoogleSignIn().disconnect();
     await FirebaseAuth.instance.signOut();
   }
 }
@@ -178,6 +178,10 @@ class MyApp extends StatelessWidget {
         create: (context) => MyAppState(),
         //child: MaterialApp(home: LoginScreen()),
         child: MaterialApp(
+          theme: ThemeData(
+            primaryColor: Colors.green,
+            primarySwatch: Colors.green
+          ),
             home: FutureBuilder(
           future:
               Firebase.initializeApp(options: DefaultFirebaseOptions.android),
@@ -206,10 +210,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool RequestNGO = false;
-  Widget build(BuildContext context) {
-    setupNotificationHandlers(context);
-    return Consumer<MyAppState>(
-      builder: (context, state, _) => StreamBuilder(
+  Widget build(BuildContext context) => StreamBuilder(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, AsyncSnapshot<User?> snapshot) {
           if (snapshot.hasError) {
@@ -223,10 +224,12 @@ class _LoginScreenState extends State<LoginScreen> {
           var user = snapshot.data;
           if (user != null) {
             db.snapshotsRoleByID('organizer').listen((event) {
+              var state = Provider.of<MyAppState>(context, listen: false);
               var value = Role.fromSnapshot(event).members.contains(user.uid);
-              if (state.RequestNGO != value) state.RequestNGO = value;
+              if (state.isNGO != value) state.isNGO = value;
             });
             userID = user.uid;
+            email = user.email;
             return FutureBuilder<DocumentSnapshot>(
               future: db.getRoleByID('organizer'),
               builder: (context, snapshot) {
@@ -251,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     query: encodeQueryParameters(<String, String>{
                       'subject': 'Request NGO status',
                       'body':
-                          'Hello, I am ${user.displayName} and I would like to request NGO status.\nUSER ID: ${user.uid}'
+                          'Hello, I am ${user.email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
                     }),
                   );
 
@@ -280,6 +283,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           Apparently only a problem in release mode
                           https://stackoverflow.com/questions/59561486/canceling-google-sign-in-cause-an-exception-in-flutter
                           */
+                        var state =
+                            Provider.of<MyAppState>(context, listen: false);
                         await state.signInWithGoogle();
                         //.signInAnonymously();
                       } on FirebaseAuthException catch (e) {
@@ -295,6 +300,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text('Request NGO status'),
                     onPressed: () async {
                       try {
+                        var state =
+                            Provider.of<MyAppState>(context, listen: false);
                         await state.signInWithGoogle();
                         //.signInAnonymously();
                       } on FirebaseAuthException catch (e) {
@@ -304,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 title: Text('Login error'),
                                 content: Text(e.code)));
                       }
-                      state.RequestNGO = true;
+                      setState(() => RequestNGO = true);
                     },
                   ),
                 ],
@@ -312,35 +319,38 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         },
-      ),
-    );
-  }
+      );
 }
 
 class EventScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: EventScreenDrawer(),
-      appBar: AppBar(
-          title: Consumer<MyAppState>(
-              builder: (context, state, _) => Text(
-                    state.myevents ? 'My events!' : 'All events!',
-                    textScaleFactor: 1.5,
-                  ))),
+      appBar: AppBar(title: Consumer<MyAppState>(builder: (context, state, _) {
+        String my_text = (state.isNGO) ? "Organized" : "Joined";
+        return Text(
+          state.myevents ? '$my_text events' : 'All events',
+          textScaleFactor: 1.5,
+        );
+      })),
       body: Consumer<MyAppState>(builder: (context, state, _) {
         final retwidget = <Widget>[];
         retwidget.add(SizedBox(height: 20));
         if (state.myevents) {
-          retwidget.add(Expanded(
-            child: EventList(db.getEvents(
-                organizer: state.RequestNGO ? userID : null,
-                participant: userID)),
-          ));
+          if (state.isNGO) {
+            retwidget.add(Expanded(
+              child: EventList(db.getEvents(organizer: userID)),
+            ));
+          } else {
+            retwidget.add(Expanded(
+              child: EventList(db.getEvents(participant: userID)),
+            ));
+          }
         } else {
           retwidget.add(
             Text(
-              'Open events!',
-              textScaleFactor: 1.5,
+              'Open events',
+              textScaleFactor: 1.25,
             ),
           );
           retwidget.add(Expanded(
@@ -349,12 +359,12 @@ class EventScreen extends StatelessWidget {
           retwidget.add(Divider());
           retwidget.add(
             Text(
-              'Closed events!',
-              textScaleFactor: 1.5,
+              'Closed events',
+              textScaleFactor: 1.25,
             ),
           );
           retwidget.add(Container(
-              height: 80,
+              height: 170,
               child: ClosedEventList(
                   db.getEvents(completed: true, published: true))));
 
@@ -385,7 +395,7 @@ class EventScreen extends StatelessWidget {
             Expanded(
               child: Container(
                 height: 60,
-                child: !state.RequestNGO
+                child: !state.isNGO
                     ? null
                     : TextButton(
                         child: Text('Organize'),
@@ -411,75 +421,75 @@ class EventScreen extends StatelessWidget {
 
 class EventScreenDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        children: [
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.blue,
-            ),
-            child: Text(
-              'View',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
+    return Container(
+      width: 200,
+      child: Drawer(
+        child: ListView(
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.green,
+              ),
+              child: Text(
+                'Drawer',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              //TODO Use popUntil LoginScreen
-              Provider.of<MyAppState>(context, listen: false).signOut();
-            },
-            child: ListTile(
-              title: Text('SignOut'),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Provider.of<MyAppState>(context, listen: false).myevents = false;
-            },
-            child: ListTile(
-              title: Text('All events'),
-            ),
-          ),
-          Consumer<MyAppState>(
-            builder: (context, state, _) => TextButton(
+            TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                state.myevents = true;
+                //TODO Use popUntil LoginScreen
+                Provider.of<MyAppState>(context, listen: false).signOut();
               },
               child: ListTile(
-                title: Text('My events'),
+                leading: Icon(Icons.exit_to_app),
+                title: Text(
+                  'Sign Out',
+                ),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          LocationPickerMap((GeoPoint geo) {})));
-            },
-            child: ListTile(
-              title: Text('Event picker Map'),
+            Divider(),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Provider.of<MyAppState>(context, listen: false).myevents =
+                    false;
+              },
+              child: ListTile(
+                leading: Icon(Icons.event),
+                title: Text('All events'),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => RecycleMap()));
-            },
-            child: ListTile(
-              title: Text('Recycle Bin Map'),
+            Divider(),
+            Consumer<MyAppState>(
+              builder: (context, state, _) => TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  state.myevents = true;
+                },
+                child: ListTile(
+                  leading: Icon(Icons.event_available),
+                  title: Text('${state.isNGO ? "Organized" : "Joined"} events'),
+                ),
+              ),
             ),
-          ),
-        ],
+            Divider(),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => RecycleMap()));
+              },
+              child: ListTile(
+                title: Text('Recycle Bins'),
+                leading: Icon(Icons.map),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -536,26 +546,38 @@ class EventTile extends StatelessWidget {
         e.complete ? e.afterPictures[0] : e.beforePictures[0];
     return Container(
       color: e.organizers.contains(userID)
-          ? Colors.redAccent
+          ? Colors.lightBlueAccent
           : (e.participants.contains(userID) ? Colors.lightGreenAccent : null),
-      child: ListTile(
-        title: TextButton(
-            onPressed: (() => Navigator.push(context,
-                MaterialPageRoute(builder: (context) => EventDetail(e)))),
-            child: Text('${e.name}')),
-        subtitle: Text('Date: ${e.orgDate}'),
-        leading: TextButton(
-            onPressed: (() => showDialog(
-                context: context,
-                builder: (context) => Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          EventPicturePages(e, before: !e.complete),
-                          ElevatedButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text('back'))
-                        ]))),
-            child: dbPicture(pictureToDisplay)),
+      child: Card(
+        child: InkWell(
+          splashColor: Colors.blue.withAlpha(30),
+          onTap: (() => Navigator.push(context,
+              MaterialPageRoute(builder: (context) => EventDetail(e)))),
+          child: Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
+            ListTile(
+              leading: Container(
+                child: dbPicture(pictureToDisplay),
+                width: 75,
+                height: 75,
+                padding: EdgeInsets.all(0),
+              ),
+              title: Text(
+                  '${e.name} on ${DateFormat("dd MMM yy H:mm").format(e.orgDate)}'),
+              subtitle: Text((e.description.length < 150)
+                  ? '${e.description}'
+                  : e.description.substring(0, 149) + "..."),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                const SizedBox(width: 8),
+                Icon(Icons.people_alt),
+                Text("${e.participants.length}"),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -598,8 +620,6 @@ class EventDetail extends StatefulWidget {
 class _EventDetailState extends State<EventDetail> {
   final int max_attendees = 20;
 
-  final String phone_number = '+5978855645';
-
   Widget build(BuildContext context) {
     //Event e = Event.fromSnapshot(await db.getEventByID(widget.e.id));
     return StreamBuilder(
@@ -629,13 +649,17 @@ class _EventDetailState extends State<EventDetail> {
                     children: [
                       EventPicturePages(e, before: !e.complete),
                       EventPanelList(e),
-                      ListTile(title: Text('Day organized: ${e.orgDate}')),
                       ListTile(
+                          leading: Icon(Icons.date_range),
                           title: Text(
-                              'Current number of sign ups: ${e.participants.length}')),
+                              '${DateFormat("dd MMM yy H:mm").format(e.orgDate)}')),
                       ListTile(
-                        title: Text('Phone number lead: $phone_number'),
-                        subtitle: Text('(will get send to the participants)'),
+                          leading: Icon(Icons.people),
+                          title: Text(
+                              '${e.participants.length} ${(e.participants.length == 1) ? "person" : "people"} joined')),
+                      ListTile(
+                        title: Text('$email'),
+                        leading: Icon(Icons.email),
                       ),
                     ],
                   ),
@@ -656,8 +680,7 @@ class _EventDetailState extends State<EventDetail> {
                     if (snapshot.connectionState == ConnectionState.done) {
                       Map<String, dynamic> data =
                           snapshot.data!.data() as Map<String, dynamic>;
-                      return RaisedButton(
-                        color: Colors.blue,
+                      return ElevatedButton(
                         onPressed: () {
                           Navigator.push(
                               context,
@@ -678,7 +701,7 @@ class _EventDetailState extends State<EventDetail> {
                 ),
                 Consumer<MyAppState>(builder: (context, state, _) {
                   bool joined = e.participants.contains(userID);
-                  if (state.RequestNGO && !joined)
+                  if (state.isNGO && !joined)
                     return (e.organizers.contains(userID) &&
                             e.complete == false)
                         ? ElevatedButton(
@@ -783,9 +806,9 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                                         LocationPickerMap(locationCallback))));
                       },
                       child: ListTile(
-                        title: Text(((loc.latitude == 0) && (loc.latitude == 0))
+                        title: Text((loc == GeoPoint(0, 0))
                             ? "Pick location"
-                            : "Select new location"),
+                            : "Picked location (lt:${loc.latitude.toStringAsFixed(3)},lng: ${loc.longitude.toStringAsFixed(3)}) (Change)"),
                       ),
                     ),
                     Divider(),
@@ -849,7 +872,6 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
               ElevatedButton(
                   onPressed: () async {
                     // Validate returns true if the form is valid, or false otherwise.
-                    print('sending');
                     if (_formKey.currentState!.validate()) {
                       if (beforePictures.length < 1) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -864,29 +886,36 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
                         return;
                       }
                       _formKey.currentState!.save();
+                      var cleanup = await db.getLTByID("Cleanup");
+                      Location location = Location(loc, cleanup.reference);
 
                       //tempory location randomly taken from the database
-                      location = FirebaseFirestore.instance
-                          .collection('Locations')
-                          .doc();
+                      var location_snapshot = await db.addLoc(location);
 
                       for (var imagePath in beforePictures) {
                         picturesToUpload
                             .add(await db.uploadImage(File(imagePath)));
                       }
                       Event e = Event(
-                          name!,
-                          'TEST UPLOAD FROM APP: ' + description!,
-                          false,
-                          true,
-                          DateTime.now(),
-                          orgDate!,
-                          [userID!],
-                          [],
-                          picturesToUpload,
-                          [],
-                          0,
-                          location!);
+                        name!,
+                        description!,
+                        false,
+                        true,
+                        DateTime.now(),
+                        orgDate!,
+                        [userID!],
+                        [],
+                        picturesToUpload,
+                        [],
+                        0,
+                        location_snapshot,
+                        '',
+                        false,
+                        false,
+                        0,
+                        0,
+                        false,
+                      );
                       db.addEvent(e);
                       Navigator.pop(context);
                     }
@@ -897,27 +926,92 @@ class _OrganizeScreenState extends State<OrganizeScreen> {
 }
 
 class StatisticsScreen extends StatelessWidget {
+  StatisticsScreen();
+
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Statistics')),
-      body: Center(
-        child: Text(
-          'Statistics',
-          textScaleFactor: 4,
-        ),
-      ),
-    );
+    return StreamBuilder<QuerySnapshot>(
+        stream: db.getEvents(completed: true, published: true),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Text("Something went wrong");
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return LinearProgressIndicator();
+          }
+          num totalVolunteers = 0;
+          num totalWasteCollected = 0;
+          num totalEventsCompleted = 0;
+          num plasticBottlesCollected = 0;
+          var docs = snapshot.data?.docs;
+
+          for (var esnapshot in docs!) {
+            var event = Event.fromSnapshot(esnapshot);
+            totalVolunteers += event.participants.length;
+            totalWasteCollected += event.garbageCollected;
+            plasticBottlesCollected += event.numPlasticBottles;
+            totalEventsCompleted += 1;
+          }
+          return Scaffold(
+            appBar: AppBar(title: Text('Statistics')),
+            body: Center(
+                child: ListView(
+              children: [
+                Center(
+                  child: ListTile(
+                    leading: Icon(Icons.event_available),
+                    title: Text("Total events completed"),
+                    subtitle: Text(totalEventsCompleted.toString()),
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(Icons.restore_from_trash),
+                  title: Text("Total waste collected"),
+                  subtitle: Text(totalWasteCollected.toString() + " Kg"),
+                ),
+                ListTile(
+                  leading: Icon(Icons.restore_from_trash),
+                  title: Text("Total plastic bottles collected"),
+                  subtitle: Text(plasticBottlesCollected.toString()),
+                ),
+                ListTile(
+                  leading: Icon(Icons.people),
+                  title: Text("Total volunteers participated"),
+                  subtitle: Text(totalVolunteers.toString()),
+                )
+              ],
+            )),
+          );
+        });
   }
 }
 
 //TODO Finish WrapUpScreen
 //TODO WrapUp before orgdate is equal to cancel?
-class WrapUpScreen extends StatelessWidget {
-  Event e;
-  List<String> afterPics = [];
-  List<String> picturesToUpload = [];
+class WrapUpScreen extends StatefulWidget {
+  final Event e;
+
   WrapUpScreen(this.e);
+
+  @override
+  State<WrapUpScreen> createState() => _WrapUpScreenState();
+}
+
+//TODO fields lose information when switching to camera screen
+class _WrapUpScreenState extends State<WrapUpScreen> {
+  List<String> afterPics = [];
+
+  List<String> picturesToUpload = [];
+
   final _formKey = GlobalKey<FormState>();
+
+  Event? e;
+
+  @override
+  void initState() {
+    super.initState();
+    e = widget.e;
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
@@ -937,9 +1031,7 @@ class WrapUpScreen extends StatelessWidget {
                         ),
                         onSaved: (String? value) {
                           // POTENTIAL ERROR!!!!!!!!!!!!!!!!!!
-                          e.complete = true;
-                          e.garbageCollected = double.parse(value!);
-                          db.updateEvent(e);
+                          e!.garbageCollected = double.parse(value!);
                         },
                         validator: (String? value) {
                           return (value == null || value.isEmpty)
@@ -951,6 +1043,87 @@ class WrapUpScreen extends StatelessWidget {
                         maxLines: null,
                       ),
                     ), // num garbage collected
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'What types of waste were collected?',
+                        ),
+                        onSaved: (String? value) {
+                          e!.wasteTypes = value!;
+                        },
+                        validator: (String? value) {
+                          return (value == null || value.isEmpty)
+                              ? 'You must specify what types waste have been collected.'
+                              : null;
+                        },
+                      ),
+                    ), // waste types
+                    CheckboxListTile(
+                        title: Text(
+                            "Was there a clean up day held at the location before?"),
+                        value: e!.firstTimeAtLoc,
+                        onChanged: (value) => setState(() => e!.firstTimeAtLoc =
+                            value!)), // first time at location
+                    CheckboxListTile(
+                        title: Text("Was the waste recycled?"),
+                        value: e!.recycled,
+                        onChanged: (value) =>
+                            setState(() => e!.recycled = value!)),
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText:
+                              'In case the waste was recycled, how many plastic bottles were disposed in the recycle bins?',
+                        ),
+                        onSaved: (String? value) {
+                          if (!e!.recycled) return;
+                          setState(
+                              () => e!.garbageCollected = int.parse(value!));
+                        },
+                        validator: (String? value) {
+                          if (!e!.recycled) return null;
+                          if (value != null)
+                            return int.tryParse(value) == null
+                                ? 'Value must be an integer'
+                                : null;
+                          return (value == null || value.isEmpty)
+                              ? 'You must specify how many plastic bottles were recycled.'
+                              : null;
+                        },
+                        enabled: e!.recycled,
+                        keyboardType: TextInputType.number,
+                        maxLength: null,
+                        maxLines: null,
+                      ),
+                    ),
+                    ListTile(
+                      title: TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'How many volunteers were present?',
+                        ),
+                        onSaved: (String? value) {
+                          setState(() => e!.numPresent = int.parse(value!));
+                        },
+                        validator: (String? value) {
+                          if (value != null)
+                            return int.tryParse(value) == null
+                                ? 'Value must be an integer'
+                                : null;
+                          return (value == null || value.isEmpty)
+                              ? 'You must specify how many volunteers were present.'
+                              : null;
+                        },
+                        keyboardType: TextInputType.number,
+                        maxLength: null,
+                        maxLines: null,
+                      ),
+                    ),
+                    CheckboxListTile(
+                        title: Text(
+                            "Was there a collaboration with an environmental organisation?"),
+                        value: e!.collabWithOrg,
+                        onChanged: (value) =>
+                            setState(() => e!.collabWithOrg = value!)),
                     TextButton(
                       onPressed: () => Navigator.push(
                         context,
@@ -985,20 +1158,12 @@ class WrapUpScreen extends StatelessWidget {
                         );
                         return;
                       }
-                      if (e.complete == false) {
-                        e.complete = true;
-                        db.updateEvent(e);
-                        // ScaffoldMessenger.of(context).showSnackBar(
-                        //   SnackBar(
-                        //       content:
-                        //           Text('The event must be marked complete')),
-                        // );
-                        return;
-                      }
                       _formKey.currentState!.save();
+                      e!.complete = true;
+                      db.updateEvent(e!);
 
                       for (var imagePath in afterPics) {
-                        db.uploadAfterImgToEvent(e, File(imagePath));
+                        db.uploadAfterImgToEvent(e!, File(imagePath));
                       }
                       Navigator.pop(context);
                     }
@@ -1021,68 +1186,6 @@ class UnreachableScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class LocTypeList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-        stream: db.getLTs(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('Something went wrong');
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return LinearProgressIndicator();
-          }
-          var docs = snapshot.data?.docs;
-          return ListView(
-            padding: const EdgeInsets.only(top: 20.0),
-            // 2
-            children: docs!.map((data) => LocTypeItem(context, data)).toList(),
-          );
-        });
-  }
-}
-
-Widget LocTypeItem(BuildContext context, DocumentSnapshot snapshot) {
-  // 4
-  final lt = LocationType.fromSnapshot(snapshot);
-  return ListTile(
-    title: Text(lt.name),
-    subtitle: Text(lt.id!),
-  );
-}
-
-class LocList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-        stream: db.getLocs(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('Something went wrong');
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return LinearProgressIndicator();
-          }
-          var docs = snapshot.data?.docs;
-          return ListView(
-            padding: const EdgeInsets.only(top: 20.0),
-            // 2
-            children: docs!.map((data) => LocItem(context, data)).toList(),
-          );
-        });
-  }
-}
-
-Widget LocItem(BuildContext context, DocumentSnapshot snapshot) {
-  // 4
-  final loc = Location.fromSnapshot(snapshot);
-  return ListTile(
-      title:
-          Text("GEO: ${loc.geo.latitude}, ${loc.geo.longitude}, ID: ${loc.id}"),
-      subtitle: Text("LT: ${loc.type.path}"));
 }
 
 class EventList extends StatelessWidget {
