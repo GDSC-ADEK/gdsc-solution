@@ -131,7 +131,7 @@ setupNotifications() {
 
 class MyAppState extends ChangeNotifier {
   bool _myevents = false;
-  bool _RequestNGO = false;
+  bool _isNGO = false;
 
   bool get myevents => _myevents;
   set myevents(bool value) {
@@ -139,9 +139,9 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get RequestNGO => _RequestNGO;
-  set RequestNGO(bool value) {
-    _RequestNGO = value;
+  bool get isNGO => _isNGO;
+  set isNGO(bool value) {
+    _isNGO = value;
     notifyListeners();
   }
 
@@ -168,7 +168,7 @@ class MyAppState extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    await GoogleSignIn().disconnect();
+    if (await GoogleSignIn().isSignedIn()) await GoogleSignIn().disconnect();
     await FirebaseAuth.instance.signOut();
   }
 }
@@ -210,10 +210,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool RequestNGO = false;
-  Widget build(BuildContext context) {
-    setupNotificationHandlers(context);
-    return Consumer<MyAppState>(
-      builder: (context, state, _) => StreamBuilder(
+  Widget build(BuildContext context) => StreamBuilder(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, AsyncSnapshot<User?> snapshot) {
           if (snapshot.hasError) {
@@ -227,11 +224,12 @@ class _LoginScreenState extends State<LoginScreen> {
           var user = snapshot.data;
           if (user != null) {
             db.snapshotsRoleByID('organizer').listen((event) {
+              var state = Provider.of<MyAppState>(context, listen: false);
               var value = Role.fromSnapshot(event).members.contains(user.uid);
-              if (state.RequestNGO != value) state.RequestNGO = value;
+              if (state.isNGO != value) state.isNGO = value;
             });
             userID = user.uid;
-            var email = user.email;
+            email = user.email;
             return FutureBuilder<DocumentSnapshot>(
               future: db.getRoleByID('organizer'),
               builder: (context, snapshot) {
@@ -240,6 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   return LinearProgressIndicator();
                 if (!snapshot.hasData || snapshot.data == null)
                   return Text('Role snapshot has no data');
+                print(snapshot.data!.toString());
                 final r = Role.fromSnapshot(snapshot.data!);
                 if (RequestNGO && !r.members.contains(userID)) {
                   String? encodeQueryParameters(Map<String, String> params) {
@@ -255,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     query: encodeQueryParameters(<String, String>{
                       'subject': 'Request NGO status',
                       'body':
-                          'Hello, I am ${email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
+                          'Hello, I am ${user.email} and I would like to request NGO status.\nUSER ID: ${user.uid}'
                     }),
                   );
 
@@ -284,6 +283,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           Apparently only a problem in release mode
                           https://stackoverflow.com/questions/59561486/canceling-google-sign-in-cause-an-exception-in-flutter
                           */
+                        var state =
+                            Provider.of<MyAppState>(context, listen: false);
                         await state.signInWithGoogle();
                         //.signInAnonymously();
                       } on FirebaseAuthException catch (e) {
@@ -299,6 +300,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text('Request NGO status'),
                     onPressed: () async {
                       try {
+                        var state =
+                            Provider.of<MyAppState>(context, listen: false);
                         await state.signInWithGoogle();
                         //.signInAnonymously();
                       } on FirebaseAuthException catch (e) {
@@ -308,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 title: Text('Login error'),
                                 content: Text(e.code)));
                       }
-                      state.RequestNGO = true;
+                      setState(() => RequestNGO = true);
                     },
                   ),
                 ],
@@ -316,9 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         },
-      ),
-    );
-  }
+      );
 }
 
 class EventScreen extends StatelessWidget {
@@ -326,7 +327,7 @@ class EventScreen extends StatelessWidget {
     return Scaffold(
       drawer: EventScreenDrawer(),
       appBar: AppBar(title: Consumer<MyAppState>(builder: (context, state, _) {
-        String my_text = (state.RequestNGO) ? "Organized" : "Joined";
+        String my_text = (state.isNGO) ? "Organized" : "Joined";
         return Text(
           state.myevents ? '$my_text events' : 'All events',
           textScaleFactor: 1.5,
@@ -336,7 +337,7 @@ class EventScreen extends StatelessWidget {
         final retwidget = <Widget>[];
         retwidget.add(SizedBox(height: 20));
         if (state.myevents) {
-          if (state.RequestNGO) {
+          if (state.isNGO) {
             retwidget.add(Expanded(
               child: EventList(db.getEvents(organizer: userID)),
             ));
@@ -394,7 +395,7 @@ class EventScreen extends StatelessWidget {
             Expanded(
               child: Container(
                 height: 60,
-                child: !state.RequestNGO
+                child: !state.isNGO
                     ? null
                     : TextButton(
                         child: Text('Organize'),
@@ -471,8 +472,7 @@ class EventScreenDrawer extends StatelessWidget {
                 },
                 child: ListTile(
                   leading: Icon(Icons.event_available),
-                  title: Text(
-                      '${state.RequestNGO ? "Organized" : "Joined"} events'),
+                  title: Text('${state.isNGO ? "Organized" : "Joined"} events'),
                 ),
               ),
             ),
@@ -701,7 +701,7 @@ class _EventDetailState extends State<EventDetail> {
                 ),
                 Consumer<MyAppState>(builder: (context, state, _) {
                   bool joined = e.participants.contains(userID);
-                  if (state.RequestNGO && !joined)
+                  if (state.isNGO && !joined)
                     return (e.organizers.contains(userID) &&
                             e.complete == false)
                         ? ElevatedButton(
@@ -1150,6 +1150,7 @@ class _WrapUpScreenState extends State<WrapUpScreen> {
               ElevatedButton(
                   onPressed: () async {
                     // Validate returns true if the form is valid, or false otherwise.
+                    print('sending');
                     if (_formKey.currentState!.validate()) {
                       if (afterPics.length < 1) {
                         ScaffoldMessenger.of(context).showSnackBar(
