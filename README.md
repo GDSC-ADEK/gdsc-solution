@@ -1,9 +1,8 @@
 
 # Krin Sranan
 
-This is the 2021 submission of Anton de Kom Universiteit Suriname's GDSC club for the 2021 GDSC solution challenge. It addresses the following Sustainable Development goals:
-
-1. sustainable cities and  communities
+This is the submission of Anton de Kom Universiteit Suriname's GDSC club for the 2022 GDSC solution challenge. It addresses the following Sustainable Development goals:
+1. responsible consumption  and production
 2. Climate action
 2. life below water
 
@@ -73,6 +72,7 @@ This will be used by organisations such as Suresur and the government to get a b
 
 
 # Contributing
+TODO
 
 ## Getting Started
 
