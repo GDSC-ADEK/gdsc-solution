@@ -2,13 +2,15 @@
 # Krin Sranan
 
 This is the submission of Anton de Kom Universiteit Suriname's GDSC club for the 2022 GDSC solution challenge. It addresses the following Sustainable Development goals:
-1. responsible consumption  and production
-2. Climate action
-2. life below water
+1. Susstainable Cities and communities (Target 11.6)
+2. responsible consumption  and production (Target 12.4)
+3. Climate action (Target 13.3)
+4. life below water (Target 14.1)
+
 
 It tries to address these by doing the following:
 1. Making people aware of recycling and where they can do it in Suriname.
-2. Organizing cleanup days to reduce the amount of unrecycled waste, preventing these from poluting land and water, as well as promoting responsible disposal of resources after consumption.
+2. Organizing cleanup days to reduce the amount of unrecycled waste, preventing these from polluting land and water, as well as promoting responsible disposal of resources after consumption.
 3. Collecting data on which locations have problems with waste disposal, allowing policy makers to make better decisions based on data.
 
 # Usage
